@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Antigravity Cite</title>
+    <link rel="stylesheet" href="cite.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-mode">
+    
+    <div id="dynamicToast" class="dynamic-toast"></div>
+    <div id="aiProcessTerminal" class="visual-terminal">
+        <div class="vt-header">
+            <span class="vt-dot"></span><span class="vt-dot"></span><span class="vt-dot"></span>
+            <b data-i18n="vtTitle">Gemini 全息倒推链条</b>
+        </div>
+        <div class="vt-body" id="vtLogs"></div>
+    </div>
+
+    <nav class="global-nav">
+        <div class="nav-top">
+            <button class="nav-btn" onclick="goHome()" title="返回主基地" style="margin-bottom: 24px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-accent)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </button>
+            <div id="navProjList" style="display:flex; flex-direction:column; gap:16px;"></div>
+        </div>
+        <div class="nav-bottom">
+            <button class="nav-btn" onclick="goPricing()" title="解锁商业算力">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </button>
+            <button class="nav-btn create-proj-btn" id="createNewProjBtn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button class="nav-btn secondary-btn" id="openLearningBtn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+            </button>
+            <button class="nav-btn" id="langSwitchBtn" style="color:var(--text-accent);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主入口长页面 (SPA Landing Matrix) -->
+    <div id="homeView" class="app-view active">
+        <div class="home-section" style="min-height: 85vh;">
+            <div class="home-hero">
+                <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:24px; color:var(--text-accent)"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                <h1 style="font-size:52px; font-weight:800; font-family:var(--font-heading); margin-bottom:16px;">Antigravity <span style="color:var(--text-accent)">Cite</span></h1>
+                <p data-i18n="heroSubtitle" style="font-size:18px; color:var(--text-secondary); max-width:600px; line-height:1.6;">
+                    下一代全息学术编辑器。深空环境底盘搭载大模态并发穿透，彻底淘汰落后的客户端与枯燥操作。<br>让你的科研真正回归内容，而不是被格式绑架。
+                </p>
+                <div style="margin-top: 40px; display:flex; gap:16px;">
+                    <button class="hero-btn primary" onclick="enterWorkspace()" data-i18n="btnEnter">进入上一次的编辑阵列</button>
+                    <button class="hero-btn" onclick="createNewProject()" data-i18n="btnNew">+ 开辟新文档空间</button>
+                    <button class="hero-btn" onclick="document.getElementById('feedbackAnchor').scrollIntoView({behavior:'smooth'})" data-i18n="btnFeedback">投送反馈意见</button>
+                </div>
+            </div>
+            <p data-i18n="heroScrollHint" style="position:absolute; bottom:40px; font-size:12px; color:var(--text-secondary); opacity:0.6;">向下滚动察看产品矩阵剖析 ↓</p>
+        </div>
+
+        <div class="home-section" style="background: rgba(134,134,139,0.03);">
+            <h2 data-i18n="featTitle" style="font-size:32px; font-weight:700; margin-bottom: 20px;">是什么？它有什么恐怖功能？</h2>
+            <div class="feature-cards">
+                <div class="f-card">
+                    <img src="assets/feat1.png" class="f-card-img" alt="Ghost Engine">
+                    <h3 data-i18n="fc1Title">🚀 隐式深空排版 (Ghost Engine)</h3>
+                    <p data-i18n="fc1Desc">告别永远要你选样式的恶梦。在后台内嵌最极端的 5 种权威排版标准，依据作者数量进行算法判断。当你在右侧选择阵营，左侧的文章就会像被抽去了重力一样在一瞬间全部自适应排列完毕。</p>
+                </div>
+                <div class="f-card">
+                    <img src="assets/feat2.png" class="f-card-img" alt="Quantum Trace">
+                    <h3 data-i18n="fc2Title">🛰 量子原力追踪溯源 (Quantum Trace)</h3>
+                    <p data-i18n="fc2Desc">只需要划取黑底白字的一段普通句子。系统就会直接穿墙接通 Google Gemini 最新全量算力核心为你测算文献原始出处！这不是单纯的给书名，它还能把结果再次喂给美国 Crossref 中心局，直接给你抓出真正的资源注入仓内。</p>
+                </div>
+                <div class="f-card">
+                    <img src="assets/feat3.png" class="f-card-img" alt="SPA Matrix">
+                    <h3 data-i18n="fc3Title">🪐 虚空挂载大库 (Limitless SPA)</h3>
+                    <p data-i18n="fc3Desc">这是一个不依赖云端的终极单页应用程序。你的每一个点子都可以开设单独的隔断空间，随时在这暗色的防光害版面无缝切换灵感源泉与参考文献。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="home-section" id="feedbackAnchor">
+            <h2 data-i18n="fbTitle" style="font-size:28px; font-weight:700; margin-bottom: 12px;">构建者的意见箱</h2>
+            <p data-i18n="fbSubtitle" style="color:var(--text-secondary); margin-bottom:40px;">前端直连抛送，所有内容将经由跨域传输抵达制作者底层数据库。</p>
+            <div class="feedback-form">
+                <input type="text" id="fbName" data-i18n-ph="fbNamePh" placeholder="你的身份 / You Name">
+                <textarea id="fbContent" rows="5" data-i18n-ph="fbContentPh" placeholder="你想对这个反重力系统提的点什么刺？或者建议..."></textarea>
+                <button class="hero-btn primary" onclick="submitFeedbackForm()" style="margin-top:10px;" data-i18n="fbSubmit">空投至作者邮箱</button>
+            </div>
+        </div>
+        
+        <div class="home-footer" data-i18n="footerText">
+            全系引擎由 胡萝卜的BEN 创建于黑暗原力 | 合作共赢邮件请直连: <b>2464658798@qq.com</b><br>
+            Powered by Antigravity Front-end Mesh & Gemini Space Net
+        </div>
+    </div>
+
+    <!-- 工作舱界面 (SPA Routing - Workspace) -->
+    <div id="workspaceView" class="app-view" style="flex: 1; display: none;">
+        <main class="editor-container">
+            <div class="doc-paper" id="docPaper">
+                <h1 contenteditable="true" class="doc-title" id="docTitle" spellcheck="false">Title</h1>
+                <div class="doc-body" id="textBody" contenteditable="true" spellcheck="false"></div>
+                
+                <div class="reference-section" id="refSection">
+                    <h2 data-i18n="refHeader">References</h2>
+                    <div id="refList"></div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="cite-sidebar">
+            <div class="sidebar-header">
+                <h3 id="sidebarProjName">AG Cite</h3>
+                <div style="display:flex; gap:8px;">
+                    <!-- 物理文件拾取器绑定按钮 -->
+                    <input type="file" id="physicalFileUploader" accept=".txt,.md" style="display:none;">
+                    <button class="icon-btn" id="uploadPhysicalBtn" title="挂载本地实体文件">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    </button>
+                    <!-- 老版PDF弹窗保持演示 -->
+                    <button class="icon-btn" id="uploadPdfBtn" title="虚拟挂载文献原件">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="search-wrap">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" class="search-input" id="sidebarSearch" data-i18n-ph="searchLibPh" placeholder="搜索本地文献库 / Scholar...">
+                <button class="add-paper-btn" id="openAddModalBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+
+            <!-- 分段控制器扩充到 5 格 -->
+            <div class="segmented-control" id="fmtSegment">
+                <div class="segment-pill" id="segPill"></div>
+                <div class="segment-item active" data-fmt="apa">APA</div>
+                <div class="segment-item" data-fmt="mla">MLA</div>
+                <div class="segment-item" data-fmt="chicago">Chi.</div>
+                <div class="segment-item" data-fmt="gb">GB</div>
+                <div class="segment-item" data-fmt="ieee">IEEE</div>
+            </div>
+
+            <div class="lib-list" id="libList"></div>
+            
+            <div class="empty-state" id="emptyState" style="display:none;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <p data-i18n="emptyLib">文献舱空荡荡的。<br>点击加号抓取你的第一份文献。</p>
+            </div>
+        </aside>
+    </div>
+
+    <!-- 商业订阅版面 (Pricing View) -->
+    <div id="pricingView" class="app-view" style="flex:1; display:none; flex-direction:column; justify-content:center; align-items:center; background:var(--bg-primary); overflow-y:auto;">
+        <div class="home-section" style="min-height:100vh;">
+            <div style="text-align:center; margin-bottom: 60px;">
+                <h1 data-i18n="priceTitle" style="font-size:42px; font-weight:800; font-family:var(--font-heading); margin-bottom:12px;">解锁无引力研究限权</h1>
+                <p data-i18n="priceSub" style="font-size:16px; color:var(--text-secondary); max-width:500px; margin:0 auto; line-height:1.6;">打破基础算力屏障，向企业级星环网络进军。<br>选择符合您野心的算力配置。</p>
+            </div>
+            
+            <div class="pricing-cards">
+                <div class="p-card">
+                    <h4 data-i18n="p1Name">基础防卫</h4>
+                    <div class="p-price" data-i18n="p1Price">$0<span>/mo</span></div>
+                    <ul class="p-features">
+                        <li data-i18n="p1f1">每日 5 次 Gemini 溯源下潜</li>
+                        <li data-i18n="p1f2">固定单线程爬取器</li>
+                        <li data-i18n="p1f3">单机内存数据限制</li>
+                    </ul>
+                    <button class="hero-btn" style="width:100%; border:1px solid rgba(255,255,255,0.2);" data-i18n="btnCurrent">当前已启动</button>
+                </div>
+                
+                <div class="p-card pro">
+                    <div class="pro-badge">RECOMMENDED</div>
+                    <h4 data-i18n="p2Name">进阶星环 (Pro)</h4>
+                    <div class="p-price" data-i18n="p2Price">$9.9<span>/mo</span></div>
+                    <ul class="p-features">
+                        <li data-i18n="p2f1">无限次 API 全局调用权</li>
+                        <li data-i18n="p2f2">最高 5 并发数文献穿透提取</li>
+                        <li data-i18n="p2f3">PDF 无损图文全解析阵列</li>
+                        <li data-i18n="p2f4">云端私有仓库穿梭同步</li>
+                    </ul>
+                    <button class="hero-btn primary" style="width:100%;" data-i18n="btnUpgrade">解锁超阶权能</button>
+                </div>
+                
+                <div class="p-card">
+                    <h4 data-i18n="p3Name">母舰节点 (Enterprise)</h4>
+                    <div class="p-price" data-i18n="p3Price">$49<span>/mo</span></div>
+                    <ul class="p-features">
+                        <li data-i18n="p3f1">私有化大模型底层微调接入</li>
+                        <li data-i18n="p3f2">并发 100+ 文献节点矩阵组网</li>
+                        <li data-i18n="p3f3">7x24 黑线网络专员巡护支持</li>
+                    </ul>
+                    <button class="hero-btn" style="width:100%; border:1px solid rgba(255,255,255,0.2);" data-i18n="btnContact">连线指挥官</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 溯源浮层按键，带数量拉伸 -->
+    <div id="aiLookupToolbar" class="floating-toolbar" style="padding-right: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span id="aiLookupExecuteGroup" data-i18n="aiTraceBtn">AI 逆向并发溯源抽取</span>
+        <select id="pullQuantity" style="margin-left: 8px;">
+            <option value="1" data-i18n="opt1">1 篇</option>
+            <option value="3" data-i18n="opt3">3 篇</option>
+            <option value="5" data-i18n="opt5">5 篇</option>
+        </select>
+    </div>
+
+    <!-- 学术规范教育中枢 -->
+    <div class="search-popover-overlay" id="learningCenterOverlay">
+        <div class="smart-search-popover" style="width: 720px; border-radius: 20px;">
+            <div style="padding: 24px; border-bottom: 1px solid rgba(134,134,139,0.15)">
+                <h2 data-i18n="lcTitle" style="font-family:var(--font-heading); font-size:20px; font-weight:700;">全学术领域排版指南 (Citation Rules Base)</h2>
+                <p data-i18n="lcSub" style="font-size:13px; color:var(--text-secondary); margin-top:6px;">掌握所有前沿格式的人数细分与算法拆解架构。</p>
+            </div>
+            <div style="padding: 24px; max-height: 60vh; overflow-y: auto;">
+                <div class="learning-card">
+                    <h4 data-i18n="lcAPA">APA 7th (心理与社科学派)</h4>
+                    <p data-i18n="lcAPA_1"><b>单作：</b> <code>(Wang, 2024)</code></p>
+                    <p data-i18n="lcAPA_2"><b>双作：</b> 使用字符桥接 <code>(Wang & Smith, 2024)</code></p>
+                    <p data-i18n="lcAPA_3"><b>三作极上：</b> 触发合著算法 <code>(Wang et al., 2024)</code></p>
+                </div>
+                <div class="learning-card" style="margin-top:16px">
+                    <h4 data-i18n="lcMLA">MLA 9th (纯正文科派)</h4>
+                    <p data-i18n="lcMLA_1"><b>单作无年：</b> <code>(Wang)</code></p>
+                    <p data-i18n="lcMLA_2"><b>双人组：</b> 纯文体 <code>(Wang and Smith)</code></p>
+                    <p data-i18n="lcMLA_3"><b>群落：</b> <code>(Wang et al.)</code></p>
+                </div>
+                <div class="learning-card" style="margin-top:16px">
+                    <h4 data-i18n="lcChi">Chicago (自然与历史架构)</h4>
+                    <p data-i18n="lcChi_1"><b>逻辑同 APA，抹除切分逗号：</b> <code>(Wang and Smith 2024)</code> 或 <code>(Wang et al. 2024)</code></p>
+                </div>
+                <!-- 省略国标及 IEEE 部分翻译标识仅做硬性匹配保障视觉 -->
+                <div class="learning-card" style="margin-top:16px">
+                    <h4>GB/T 7714</h4><p><code>[1]</code> <code>[2]</code></p>
+                </div>
+                <div class="learning-card" style="margin-top:16px">
+                    <h4>IEEE</h4><p><code>[1]</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 抓取网络论文模态框 -->
+    <div class="search-popover-overlay" id="addPaperOverlay">
+        <div class="smart-search-popover" style="width: 500px">
+            <div class="popover-search-bar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <input type="text" id="addPaperInput" data-i18n-ph="apInputPh" placeholder="请输入任意已知论文标题让天线捕获..." autocomplete="off">
+                <button id="execAddPaperBtn" class="act-btn" style="padding:4px 12px; background:var(--text-accent); color:#fff; border-radius:12px; font-size:12px;" data-i18n="apBtn">强捕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹射式键盘唤醒中心 (Smart Popover) -->
+    <div class="search-popover-overlay" id="searchOverlay">
+        <div class="smart-search-popover" id="smartPopover" style="width:600px;">
+            <div class="popover-search-bar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="popoverInput" data-i18n-ph="popInputPh" placeholder="键入参数极速挂载..." autocomplete="off">
+            </div>
+            <div class="popover-results" id="popoverResults"></div>
+            <div class="popover-footer"><span data-i18n="popFooter">按 ↑ ↓ 键选择结果，Enter 爆破贯穿至文章内</span></div>
+        </div>
+    </div>
+
+    <!-- 新建项目抽屉 -->
+    <div class="search-popover-overlay" id="projModalOverlay">
+        <div class="smart-search-popover" style="width: 400px; padding: 30px;">
+            <h3 data-i18n="newProjTitle" style="margin-bottom:12px; font-family:var(--font-heading);">开辟全新反重力分区</h3>
+            <input type="text" id="projNameInput" class="search-input" data-i18n-ph="newProjPh" placeholder="请为新学术项目命名..." style="background: rgba(134,134,139,0.1); width:100%; margin-bottom:20px;">
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <button class="act-btn" onclick="document.getElementById('projModalOverlay').classList.remove('show')" style="color:var(--text-secondary)" data-i18n="btnCancel">弃置</button>
+                <button class="act-btn" style="background:var(--text-primary); color:var(--bg-paper); padding:6px 16px; border-radius:8px;" id="confirmProjBtn" data-i18n="btnConfirmNew">缔造新区</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 真·PDF 接收门演示 -->
+    <div class="search-popover-overlay" id="pdfModalOverlay">
+        <div class="smart-search-popover" style="width: 400px; padding: 40px; text-align:center;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-accent)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <h3 data-i18n="pdfTitle" style="margin-top:20px; font-family:var(--font-heading);">将原件 PDF 抛落于此</h3>
+            <p data-i18n="pdfSub" style="font-size:13px; color:var(--text-secondary); margin-top:8px;">文件将在本地极速静默预处理以生成挂载引用点<br>（此为物理概念版展示）</p>
+            <button class="act-btn" onclick="document.getElementById('pdfModalOverlay').classList.remove('show')" style="margin-top:30px; background:rgba(255,255,255,0.05); padding:8px 24px; border-radius:24px;" data-i18n="btnReturn">返回矩阵</button>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="engine.js"></script>
+</body>
+</html>
