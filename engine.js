@@ -20,7 +20,8 @@ const I18N = {
         apInputPh: "请输入任意已知论文标题让天线捕获...", apBtn: "强捕", popInputPh: "键入参数极速挂载...", popFooter: "按 ↑ ↓ 键选择结果，Enter 爆破贯穿至文章内",
         newProjTitle: "开辟全新反重力分区", newProjPh: "请为新学术项目命名...", btnCancel: "弃置", btnConfirmNew: "缔造新区",
         pdfTitle: "将原件 PDF 抛落于此", pdfSub: "文件将在本地极速静默预处理以生成挂载引用点<br>（此为物理概念版展示）", btnReturn: "返回矩阵",
-        toastCited: "成功引用", toastDeleted: "节点已清除脱机。", toastDropRef: "物理介质文本压入成功！",
+        toastCited: "成功引用", toastDeleted: "节点已清除脱机。", toastDropRef: "物理介质文本压入成功！", toastExport: "阵列引文已导出至 EndNote 库。", toastNoExport: "空仓！没有可以抽取的阵列文献。",
+        exportEnwTitle: "导出当前大库为 EndNote 节点 (.enw)", uploadPhysTitle: "接管并载入本机实体文件文本", uploadPdfTitle: "虚拟挂载文献原件",
         priceTitle: "解锁无引力研究限权", priceSub: "打破基础算力屏障，向企业级星环网络进军。<br>选择符合您野心的算力配置。",
         p1Name: "基础防卫", p1Price: "$0<span>/mo</span>", p1f1: "每日 5 次 Gemini 溯源下潜", p1f2: "固定单线程爬取器", p1f3: "单机内存数据限制", btnCurrent: "当前已启动",
         p2Name: "进阶星环 (Pro)", p2Price: "$9.9<span>/mo</span>", p2f1: "无限次 API 全局调用权", p2f2: "最高 5 并发数文献穿透提取", p2f3: "PDF 无损图文全解析阵列", p2f4: "云端私有仓库穿梭同步", btnUpgrade: "解锁超阶权能",
@@ -43,7 +44,8 @@ const I18N = {
         apInputPh: "Input partial title to trigger extraction probe...", apBtn: "Capture", popInputPh: "Type parameters to inject...", popFooter: "Key ↑ ↓ to switch, Enter to execute penetration",
         newProjTitle: "Establish New Alpha Sector", newProjPh: "Assign codename for new sector...", btnCancel: "Abort", btnConfirmNew: "Initialize",
         pdfTitle: "Drop Original PDF Material", pdfSub: "Instance will seamlessly compute and hash indexing vectors.<br>(Visual Prototype Sequence)", btnReturn: "Return to Matrix",
-        toastCited: "Entity Cited", toastDeleted: "Node sequence purged.", toastDropRef: "Local Syntax Successfully Flushed into Active Chamber.",
+        toastCited: "Entity Cited", toastDeleted: "Node sequence purged.", toastDropRef: "Local Syntax Successfully Flushed into Active Chamber.", toastExport: "Library successfully encoded to EndNote format.", toastNoExport: "Library is empty, nothing to extract.",
+        exportEnwTitle: "Export Library to EndNote (.enw)", uploadPhysTitle: "Force fetch local physical document", uploadPdfTitle: "Upload Original PDF Document",
         priceTitle: "Unlock Zero-Gravity Limits", priceSub: "Shatter compute barriers and advance to the Enterprise-Grade Hyper-Ring Network.<br>Select configuration matching your ambitions.",
         p1Name: "Base Defense", p1Price: "$0<span>/mo</span>", p1f1: "5 Gemini Deep Dives / Day", p1f2: "Single-thread Web Scraper", p1f3: "Local Memory Constraints", btnCurrent: "Currently Active",
         p2Name: "Pro Matrix", p2Price: "$9.9<span>/mo</span>", p2f1: "Unlimited Global API Compute", p2f2: "Max 5 Concurrent Traces", p2f3: "Lossless PDF Neural Parse", p2f4: "Private Cloud Workspace Sync", btnUpgrade: "Unlock Pro Power",
@@ -53,10 +55,56 @@ const I18N = {
 
 let currentLang = 'zh';
 
+// =============== 数据防抖与持久化留存 (Local Resonance) ===============
+const LOCAL_DB_KEY = 'AGC_LOCAL_DB';
+if (localStorage.getItem(LOCAL_DB_KEY)) {
+    try {
+        const raw = JSON.parse(localStorage.getItem(LOCAL_DB_KEY));
+        window.AGC_PROJECTS = raw.map(p => { p.citedIds = new Set(p.citedIds || []); return p; });
+    } catch(e) { console.error("DB Load Error", e); }
+}
+
 let projDb = window.AGC_PROJECTS;
-let activeProj = window.AGC_PROJECTS.find(p => p.projectId === window.AGC_ACTIVE_PROJ_ID);
+let activeProj = window.AGC_PROJECTS.find(p => p.projectId === window.AGC_ACTIVE_PROJ_ID) || projDb[0];
+if(!window.AGC_ACTIVE_PROJ_ID) window.AGC_ACTIVE_PROJ_ID = activeProj.projectId;
+
+let saveDbTimer = null;
+window.debounceSaveDB = function() {
+    clearTimeout(saveDbTimer);
+    saveDbTimer = setTimeout(() => {
+        const payload = JSON.stringify(projDb, (k, v) => k === 'citedIds' ? Array.from(v) : v);
+        localStorage.setItem(LOCAL_DB_KEY, payload);
+    }, 1500); // 停笔 1.5s 后静默存储
+};
 
 let currentFormat = 'apa';
+
+// =============== 全局灾备存储接口 (JSON Array) ===============
+document.getElementById('btnExportJson').onclick = () => {
+    let payload = JSON.stringify(projDb, (k, v) => k === 'citedIds' ? Array.from(v) : v, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `AGCITE_MATRIX_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast(currentLang === 'zh' ? "全节点大群数据存档已脱出！" : "Matrix Nodes Extracted!");
+};
+
+document.getElementById('btnImportJson').onclick = () => document.getElementById('jsonRealImport').click();
+document.getElementById('jsonRealImport').onchange = (e) => {
+    const file = e.target.files[0];
+    if(file) {
+        const r = new FileReader();
+        r.onload = ev => {
+            try { 
+                JSON.parse(ev.target.result); // test
+                localStorage.setItem(LOCAL_DB_KEY, ev.target.result);
+                location.reload(); 
+            } catch(ex) { showToast(currentLang === 'zh' ? "灾备文档已损坏！" : "Backup Corrupted!"); }
+        };
+        r.readAsText(file);
+    }
+};
 
 // DOM Elements
 const libList = document.getElementById('libList');
@@ -89,6 +137,7 @@ window.updateLangRender = function() {
     const dict = I18N[currentLang];
     document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = dict[el.getAttribute('data-i18n')]; });
     document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = dict[el.getAttribute('data-i18n-ph')]; });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = dict[el.getAttribute('data-i18n-title')]; });
     renderLibrary();
     updateAllCitations();
 }
@@ -138,6 +187,7 @@ function switchProject(id) {
     renderNav();
     renderLibrary();
     updateAllCitations();
+    debounceSaveDB();
 }
 
 // 主面板呼出器
@@ -161,16 +211,16 @@ document.getElementById('confirmProjBtn').onclick = () => {
     projDb.push(newProj);
     document.getElementById('projModalOverlay').classList.remove('show');
     switchProject(newId);
+    debounceSaveDB();
 }
 
 document.getElementById('openLearningBtn').onclick = () => document.getElementById('learningCenterOverlay').classList.add('show');
 document.getElementById('learningCenterOverlay').onmousedown = e => { if(e.target.id==='learningCenterOverlay') e.target.classList.remove('show'); };
 
 // ============================================
-// 物理介质深层摄取引擎 (FileReader Import API)
+// 物理介质深层摄取引擎 (Txt & True PDF Engine)
 // ============================================
-document.getElementById('uploadPdfBtn').onclick = () => document.getElementById('pdfModalOverlay').classList.add('show');
-
+// 1. Text Import
 document.getElementById('uploadPhysicalBtn').onclick = () => document.getElementById('physicalFileUploader').click();
 document.getElementById('physicalFileUploader').onchange = (e) => {
     const file = e.target.files[0];
@@ -178,15 +228,48 @@ document.getElementById('physicalFileUploader').onchange = (e) => {
         const reader = new FileReader();
         reader.onload = (ev) => {
             let res = ev.target.result;
-            // 解构文本文理转注为段落阵列
             res = res.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('');
             activeProj.documentBody = res;
             activeProj.documentTitle = file.name.replace(/\.[^/.]+$/, "");
-            textBody.innerHTML = res;
-            docTitle.innerText = activeProj.documentTitle;
+            textBody.innerHTML = res; docTitle.innerText = activeProj.documentTitle;
             showToast(I18N[currentLang].toastDropRef);
+            debounceSaveDB();
         };
         reader.readAsText(file);
+    }
+};
+
+// 2. Real PDF.js Core Import
+const uploadPdfRealBtn = document.getElementById('uploadPdfRealBtn');
+const pdfRealUploader = document.getElementById('pdfRealUploader');
+if(uploadPdfRealBtn) uploadPdfRealBtn.onclick = () => pdfRealUploader.click();
+if(pdfRealUploader) pdfRealUploader.onchange = (e) => {
+    const file = e.target.files[0];
+    if(file && file.type === 'application/pdf') {
+        const fileReader = new FileReader();
+        showToast(currentLang === 'zh' ? "调用本机算力开始切片 PDF 文字层..." : "Initiating neural PDF extraction...");
+        fileReader.onload = async function() {
+            try {
+                const typedarray = new Uint8Array(this.result);
+                const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                let fullText = "";
+                // 为演示前端单体算力，锁定切最多15页防内存硬撑
+                for (let i = 1; i <= Math.min(pdf.numPages, 15); i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(s => s.str).join(' ');
+                    fullText += `<p>${pageText}</p>`;
+                }
+                activeProj.documentBody = fullText;
+                activeProj.documentTitle = file.name.replace(/\.[^/.]+$/, "");
+                textBody.innerHTML = fullText; docTitle.innerText = activeProj.documentTitle;
+                showToast(currentLang === 'zh' ? "PDF 物理原件已无损挂载成功！" : "PDF Node Sequence Mounted.");
+                debounceSaveDB();
+            } catch(e) {
+                showToast("Fatal Error! PDF 图层强拉失败。");
+            }
+        };
+        fileReader.readAsArrayBuffer(file);
     }
 };
 
@@ -227,6 +310,7 @@ window.deletePaper = function(id) {
         renderLibrary();
         updateAllCitations();
         showToast(I18N[currentLang].toastDeleted);
+        debounceSaveDB();
     }
 }
 
@@ -382,7 +466,14 @@ function updateAllCitations() {
     });
 }
 
-textBody.addEventListener('input', () => { updateAllCitations(); });
+textBody.addEventListener('input', () => { 
+    updateAllCitations(); 
+    debounceSaveDB(); 
+});
+docTitle.addEventListener('input', () => {
+    activeProj.documentTitle = docTitle.innerText;
+    debounceSaveDB();
+});
 
 function showToast(msg) {
     dynamicToast.innerText = msg; dynamicToast.classList.add('show');
@@ -429,6 +520,7 @@ window.insertCitation = function(id) {
     }
     
     updateAllCitations();
+    debounceSaveDB();
     showToast(`${I18N[currentLang].toastCited}: ${item.authors.split(',')[0]}`);
     searchOverlay.classList.remove('show');
 }
@@ -469,11 +561,12 @@ async function fetchAndInjectCrossref(titleQuery) {
             abstract: "Auto scraped by AG Cite from Crossref node.", pdfUrl: ""
         };
         activeProj.library.push(newRef);
-        renderLibrary();
+        renderLibrary(); debounceSaveDB();
         addLog(`<span style="color:#0f0">[SUCCESS] Element Mounted into Sector ${activeProj.projectId}.</span>`);
         return newRef;
     } else {
         addLog(`<span style="color:#ea4335">[WARN] 404 NO MATCH FOUND IN MATRIX.</span>`);
+        showToast(currentLang === 'zh' ? "天线警告：核心数据库未找到该数字文献！" : "Crossref Error: Metadata 404");
         return null;
     }
 }
@@ -495,10 +588,27 @@ execAddPaperBtn.onclick = async () => {
 
 // ============================================
 // 深空之眼：大语言模型高维反向溯源系统
+// 拦截与强制收费漏斗架构 (Quota Subscriptions Mock)
 // ============================================
 const aiLookupToolbar = document.getElementById('aiLookupToolbar');
-const GEMINI_KEY = "AIzaSyAgmdDjPGbGTnJ92RPnbEI6zuRf_gOcxbU"; 
+// Base64 Code of the Key. A slight barrier against naive DOM inspection. (Please replace in serious prod!)
+const GEMINI_KEY = atob("QUl6YVN5QWdtZERqUEdiR1RuSjkyUlBuYkVJNnp1UmZfZ09jeGJV"); 
 let currentSelectedText = "";
+
+function checkQuotaAndConsume() {
+    const today = new Date().toISOString().split('T')[0];
+    let usage = JSON.parse(localStorage.getItem('AG_USAGE') || '{"date":"","count":0}');
+    if(usage.date !== today) { usage.date = today; usage.count = 0; }
+    
+    if(usage.count >= 5) {
+        showToast(currentLang === 'zh' ? "[算力断崖] 基础防卫套餐今日 5 次配额已打空！将为您开启升阶阵列！" : "[Limit Reached] 5 Basic Free Traces Depleted. Upgrading is Required.");
+        setTimeout(() => window.goPricing(), 1800);
+        return false;
+    }
+    usage.count++;
+    localStorage.setItem('AG_USAGE', JSON.stringify(usage));
+    return true;
+}
 
 document.addEventListener('selectionchange', () => {
     const sel = window.getSelection();
@@ -525,6 +635,9 @@ document.getElementById('aiLookupExecuteGroup').onclick = () => {
     if(!currentSelectedText) return;
     const requestedCount = parseInt(document.getElementById('pullQuantity').value) || 1;
     aiLookupToolbar.classList.remove('active');
+    
+    // 强制扣减每日配频，防黑客白嫖大招门槛
+    if(!checkQuotaAndConsume()) return;
     
     // 注入全景重型终端任务线
     runVisualTerminal((async () => {
@@ -556,9 +669,11 @@ document.getElementById('aiLookupExecuteGroup').onclick = () => {
                 addLog(`<span style="color:#0f0">ALL TRACE MISSIONS COMPLETED.</span>`);
             } else if (data.error) {
                 addLog(`<span style="color:#ea4335">API REJECT: ${data.error.message.substring(0,30)}</span>`);
+                showToast(currentLang === 'zh' ? "神经末梢异常，主源拒绝接驳！" : "API Rejected Connection");
             }
         } catch(e) {
             addLog(`<span style="color:#ea4335">FATAL NETWORK DROP: CORS or BLOCK.</span>`);
+            showToast(currentLang === 'zh' ? "强袭请求被物理切断！请检查连线。" : "Network Fatal Drop Detected");
         } finally {
             window.getSelection().removeAllRanges();
         }
@@ -625,6 +740,27 @@ function highlightPopResult() {
 
 popoverInput.addEventListener('input', (e) => renderPopoverResults(e.target.value));
 searchOverlay.addEventListener('mousedown', (e) => { if(e.target === searchOverlay) searchOverlay.classList.remove('show'); });
+
+// 导出至 EndNote 逻辑
+document.getElementById('exportEndNoteBtn').onclick = () => {
+    if (activeProj.library.length === 0) { showToast(I18N[currentLang].toastNoExport); return; }
+    let enwContent = "";
+    activeProj.library.forEach(item => {
+        enwContent += "%0 Journal Article\n";
+        const authorArray = item.authors.split(',').map(a => a.trim().replace(/^&/, '').replace(/^and/, '').trim());
+        authorArray.forEach(a => { if(a) enwContent += `%A ${a}\n`; });
+        enwContent += `%T ${item.title}\n%J ${item.journal}\n%D ${item.year}\n`;
+        if(item.doi) enwContent += `%R ${item.doi}\n`;
+        enwContent += "\n";
+    });
+    const blob = new Blob([enwContent], { type: 'application/x-endnote-refer' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `AGCITE_${activeProj.projectName.replace(/\s/g,'_')}.enw`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(I18N[currentLang].toastExport);
+};
 
 // Boot
 window.updateLangRender();

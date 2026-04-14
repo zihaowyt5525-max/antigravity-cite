@@ -5,6 +5,8 @@
     <title>Antigravity Cite</title>
     <link rel="stylesheet" href="cite.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 </head>
 <body class="dark-mode">
     
@@ -36,6 +38,13 @@
             </button>
             <button class="nav-btn" id="langSwitchBtn" style="color:var(--text-accent);">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </button>
+            <input type="file" id="jsonRealImport" style="display:none;" accept=".json">
+            <button class="nav-btn" id="btnImportJson" title="加载并覆盖本机数据灾备 (.json)" style="color:var(--text-secondary); margin-top:20px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </button>
+            <button class="nav-btn" id="btnExportJson" title="抽离当前所有全库数据存档 (.json)" style="color:var(--text-secondary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </button>
         </div>
     </nav>
@@ -69,7 +78,7 @@
                 <div class="f-card">
                     <img src="assets/feat2.png" class="f-card-img" alt="Quantum Trace">
                     <h3 data-i18n="fc2Title">🛰 量子原力追踪溯源 (Quantum Trace)</h3>
-                    <p data-i18n="fc2Desc">只需要划取黑底白字的一段普通句子。系统就会直接穿墙接通 Google Gemini 最新全量算力核心为你测算文献原始出处！这不是单纯的给书名，它还能把结果再次喂给美国 Crossref 中心局，直接给你抓出真正的资源注入仓内。</p>
+                    <p data-i18n="fc2Desc">基于 Gemini Flash 并发算流直连国际 Crossref API 开放节点，实施精准的源生数字对象唯一标识符 (DOI) 结构化穿刺验证。彻底剥离伪命题的编造引用。</p>
                 </div>
                 <div class="f-card">
                     <img src="assets/feat3.png" class="f-card-img" alt="SPA Matrix">
@@ -113,13 +122,18 @@
             <div class="sidebar-header">
                 <h3 id="sidebarProjName">AG Cite</h3>
                 <div style="display:flex; gap:8px;">
+                    <!-- 导出 EndNote 按钮 -->
+                    <button class="icon-btn" id="exportEndNoteBtn" data-i18n-title="exportEnwTitle" title="导出为 EndNote 库 (.enw)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </button>
                     <!-- 物理文件拾取器绑定按钮 -->
                     <input type="file" id="physicalFileUploader" accept=".txt,.md" style="display:none;">
-                    <button class="icon-btn" id="uploadPhysicalBtn" title="挂载本地实体文件">
+                    <button class="icon-btn" id="uploadPhysicalBtn" data-i18n-title="uploadPhysTitle" title="挂载本地文本文件 (*.txt)">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                     </button>
-                    <!-- 老版PDF弹窗保持演示 -->
-                    <button class="icon-btn" id="uploadPdfBtn" title="虚拟挂载文献原件">
+                    <!-- PDF 解析端 -->
+                    <input type="file" id="pdfRealUploader" accept="application/pdf" style="display:none;">
+                    <button class="icon-btn" id="uploadPdfRealBtn" data-i18n-title="uploadPdfTitle" title="调用底层计算单元剥离 PDF 原件">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     </button>
                 </div>
@@ -214,8 +228,10 @@
     <div class="search-popover-overlay" id="learningCenterOverlay">
         <div class="smart-search-popover" style="width: 720px; border-radius: 20px;">
             <div style="padding: 24px; border-bottom: 1px solid rgba(134,134,139,0.15)">
-                <h2 data-i18n="lcTitle" style="font-family:var(--font-heading); font-size:20px; font-weight:700;">全学术领域排版指南 (Citation Rules Base)</h2>
-                <p data-i18n="lcSub" style="font-size:13px; color:var(--text-secondary); margin-top:6px;">掌握所有前沿格式的人数细分与算法拆解架构。</p>
+                <h2 data-i18n="lcTitle" style="font-family:var(--font-heading); font-size:20px; font-weight:700;">全学术领域排版指南 (Citation Rules)</h2>
+                <div style="margin-top:12px; padding:8px 12px; background:rgba(255,255,255,0.05); border-radius:8px; display:inline-block; font-size:12px; color:var(--text-accent);">
+                    ⚡ 任何时候按下 <b>Ctrl+Shift+F</b> 即可呼出全域快捷引文挂载器。
+                </div>
             </div>
             <div style="padding: 24px; max-height: 60vh; overflow-y: auto;">
                 <div class="learning-card">
@@ -280,16 +296,10 @@
         </div>
     </div>
 
-    <!-- 真·PDF 接收门演示 -->
-    <div class="search-popover-overlay" id="pdfModalOverlay">
-        <div class="smart-search-popover" style="width: 400px; padding: 40px; text-align:center;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-accent)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <h3 data-i18n="pdfTitle" style="margin-top:20px; font-family:var(--font-heading);">将原件 PDF 抛落于此</h3>
-            <p data-i18n="pdfSub" style="font-size:13px; color:var(--text-secondary); margin-top:8px;">文件将在本地极速静默预处理以生成挂载引用点<br>（此为物理概念版展示）</p>
-            <button class="act-btn" onclick="document.getElementById('pdfModalOverlay').classList.remove('show')" style="margin-top:30px; background:rgba(255,255,255,0.05); padding:8px 24px; border-radius:24px;" data-i18n="btnReturn">返回矩阵</button>
-        </div>
-    </div>
-
+    <!-- 下方两个用于兼容旧版 HTML 的遗留结构 -->
+    <div id="pdfModalOverlay" style="display:none;"></div>
+    <div id="uploadPdfBtn" style="display:none;"></div>
+    
     <script src="database.js"></script>
     <script src="engine.js"></script>
 </body>
