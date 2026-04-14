@@ -60,7 +60,12 @@ const LOCAL_DB_KEY = 'AGC_LOCAL_DB';
 if (localStorage.getItem(LOCAL_DB_KEY)) {
     try {
         const raw = JSON.parse(localStorage.getItem(LOCAL_DB_KEY));
-        window.AGC_PROJECTS = raw.map(p => { p.citedIds = new Set(p.citedIds || []); return p; });
+        if (Array.isArray(raw) && raw.length > 0) {
+            window.AGC_PROJECTS = raw.map(p => { 
+                p.citedIds = new Set(p.citedIds || []); 
+                return p; 
+            });
+        }
     } catch(e) { console.error("DB Load Error", e); }
 }
 
@@ -86,7 +91,8 @@ document.getElementById('btnExportJson').onclick = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
     a.download = `AGCITE_MATRIX_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
-    a.click(); URL.revokeObjectURL(url);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); 
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     showToast(currentLang === 'zh' ? "全节点大群数据存档已脱出！" : "Matrix Nodes Extracted!");
 };
 
@@ -97,13 +103,16 @@ document.getElementById('jsonRealImport').onchange = (e) => {
         const r = new FileReader();
         r.onload = ev => {
             try { 
-                JSON.parse(ev.target.result); // test
-                localStorage.setItem(LOCAL_DB_KEY, ev.target.result);
-                location.reload(); 
-            } catch(ex) { showToast(currentLang === 'zh' ? "灾备文档已损坏！" : "Backup Corrupted!"); }
+                const data = JSON.parse(ev.target.result); 
+                if (Array.isArray(data)) {
+                    localStorage.setItem(LOCAL_DB_KEY, ev.target.result);
+                    location.reload(); 
+                } else { throw new Error("Format Invalid"); }
+            } catch(ex) { showToast(currentLang === 'zh' ? "灾备文档格式损坏！" : "Backup Corrupted!"); }
         };
         r.readAsText(file);
     }
+    e.target.value = ''; // Reset
 };
 
 // DOM Elements
@@ -221,23 +230,28 @@ document.getElementById('learningCenterOverlay').onmousedown = e => { if(e.targe
 // 物理介质深层摄取引擎 (Txt & True PDF Engine)
 // ============================================
 // 1. Text Import
-document.getElementById('uploadPhysicalBtn').onclick = () => document.getElementById('physicalFileUploader').click();
-document.getElementById('physicalFileUploader').onchange = (e) => {
-    const file = e.target.files[0];
-    if(file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            let res = ev.target.result;
-            res = res.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('');
-            activeProj.documentBody = res;
-            activeProj.documentTitle = file.name.replace(/\.[^/.]+$/, "");
-            textBody.innerHTML = res; docTitle.innerText = activeProj.documentTitle;
-            showToast(I18N[currentLang].toastDropRef);
-            debounceSaveDB();
-        };
-        reader.readAsText(file);
-    }
-};
+if(document.getElementById('uploadPhysicalBtn')) {
+    document.getElementById('uploadPhysicalBtn').onclick = () => document.getElementById('physicalFileUploader').click();
+}
+if(document.getElementById('physicalFileUploader')) {
+    document.getElementById('physicalFileUploader').onchange = (e) => {
+        const file = e.target.files[0];
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                let res = ev.target.result;
+                res = res.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('');
+                activeProj.documentBody += res; // Add instead of replace
+                activeProj.documentTitle = activeProj.documentTitle === "无标题文档" ? file.name.replace(/\.[^/.]+$/, "") : activeProj.documentTitle;
+                textBody.innerHTML = activeProj.documentBody; docTitle.innerText = activeProj.documentTitle;
+                showToast(I18N[currentLang].toastDropRef);
+                updateAllCitations();
+            };
+            reader.readAsText(file);
+        }
+        e.target.value = ''; // Reset
+    };
+}
 
 // 2. Real PDF.js Core Import
 const uploadPdfRealBtn = document.getElementById('uploadPdfRealBtn');
@@ -250,27 +264,28 @@ if(pdfRealUploader) pdfRealUploader.onchange = (e) => {
         showToast(currentLang === 'zh' ? "调用本机算力开始切片 PDF 文字层..." : "Initiating neural PDF extraction...");
         fileReader.onload = async function() {
             try {
+                if(typeof pdfjsLib === 'undefined') { showToast("PDF 核心引擎离线 (请连接有效网络)"); return; }
                 const typedarray = new Uint8Array(this.result);
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 let fullText = "";
-                // 为演示前端单体算力，锁定切最多15页防内存硬撑
                 for (let i = 1; i <= Math.min(pdf.numPages, 15); i++) {
                     const page = await pdf.getPage(i);
                     const textContent = await page.getTextContent();
                     const pageText = textContent.items.map(s => s.str).join(' ');
                     fullText += `<p>${pageText}</p>`;
                 }
-                activeProj.documentBody = fullText;
-                activeProj.documentTitle = file.name.replace(/\.[^/.]+$/, "");
-                textBody.innerHTML = fullText; docTitle.innerText = activeProj.documentTitle;
+                activeProj.documentBody += fullText; // Add instead of replace
+                activeProj.documentTitle = activeProj.documentTitle === "无标题文档" ? file.name.replace(/\.[^/.]+$/, "") : activeProj.documentTitle;
+                textBody.innerHTML = activeProj.documentBody; docTitle.innerText = activeProj.documentTitle;
                 showToast(currentLang === 'zh' ? "PDF 物理原件已无损挂载成功！" : "PDF Node Sequence Mounted.");
-                debounceSaveDB();
+                updateAllCitations();
             } catch(e) {
                 showToast("Fatal Error! PDF 图层强拉失败。");
             }
         };
         fileReader.readAsArrayBuffer(file);
     }
+    e.target.value = ''; // Reset
 };
 
 // =============== 核心文献渲染与管理 ===============
@@ -742,39 +757,44 @@ popoverInput.addEventListener('input', (e) => renderPopoverResults(e.target.valu
 searchOverlay.addEventListener('mousedown', (e) => { if(e.target === searchOverlay) searchOverlay.classList.remove('show'); });
 
 // 导出至 Word (.doc) 逻辑
-document.getElementById('exportDocBtn').onclick = () => {
-    const rawBody = textBody.innerHTML.replace(/<span[^>]*class="cite-chip"[^>]*>(.*?)<\/span>/gi, '$1');
-    const rawRef = refList.innerHTML;
-    const docXML = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${activeProj.documentTitle}</title><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; } h1 { text-align: center; } p { line-height: 1.5; text-indent: 2em; } .ref-entry { margin-bottom: 12px; font-size: 11pt; padding-left: 2em; text-indent: -2em;}</style></head><body><h1>${activeProj.documentTitle}</h1><div>${rawBody}</div><div style="margin-top:40px; border-top:1px solid #000; padding-top:20px;"><h2 style="text-align:left; text-indent:0;">References</h2>${rawRef}</div></body></html>`;
+if(document.getElementById('exportDocBtn')) {
+    document.getElementById('exportDocBtn').onclick = () => {
+        const rawBody = textBody.innerHTML.replace(/<span[^>]*class="cite-chip"[^>]*>(.*?)<\/span>/gi, '$1');
+        const rawRef = refList.innerHTML;
+        const docXML = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${activeProj.documentTitle}</title><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; } h1 { text-align: center; } p { line-height: 1.5; text-indent: 2em; } .ref-entry { margin-bottom: 12px; font-size: 11pt; padding-left: 2em; text-indent: -2em;}</style></head><body><h1>${activeProj.documentTitle}</h1><div>${rawBody}</div><div style="margin-top:40px; border-top:1px solid #000; padding-top:20px;"><h2 style="text-align:left; text-indent:0;">References</h2>${rawRef}</div></body></html>`;
 
-    const blob = new Blob(['\ufeff', docXML], { type: 'application/msword;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = `${activeProj.documentTitle.replace(/\s/g,'_')}_AGCITE.doc`;
-    a.click(); URL.revokeObjectURL(url);
-    showToast(currentLang === 'zh' ? "排版文稿大区已被剥离为原生 Word 文件！" : "Word Document Assembled & Exported.");
-};
+        const blob = new Blob(['\ufeff', docXML], { type: 'application/msword;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url;
+        a.download = `${activeProj.documentTitle.replace(/\s/g,'_')}_AGCITE.doc`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(currentLang === 'zh' ? "排版文稿大区已被剥离为原生 Word 文件！" : "Word Document Assembled & Exported.");
+    };
+}
 
 // 导出至 EndNote 逻辑
-document.getElementById('exportEndNoteBtn').onclick = () => {
-    if (activeProj.library.length === 0) { showToast(I18N[currentLang].toastNoExport); return; }
-    let enwContent = "";
-    activeProj.library.forEach(item => {
-        enwContent += "%0 Journal Article\n";
-        const authorArray = item.authors.split(',').map(a => a.trim().replace(/^&/, '').replace(/^and/, '').trim());
-        authorArray.forEach(a => { if(a) enwContent += `%A ${a}\n`; });
-        enwContent += `%T ${item.title}\n%J ${item.journal}\n%D ${item.year}\n`;
-        if(item.doi) enwContent += `%R ${item.doi}\n`;
-        enwContent += "\n";
-    });
-    const blob = new Blob([enwContent], { type: 'application/x-endnote-refer' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = `AGCITE_${activeProj.projectName.replace(/\s/g,'_')}.enw`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(I18N[currentLang].toastExport);
-};
+if(document.getElementById('exportEndNoteBtn')) {
+    document.getElementById('exportEndNoteBtn').onclick = () => {
+        if (activeProj.library.length === 0) { showToast(I18N[currentLang].toastNoExport); return; }
+        let enwContent = "";
+        activeProj.library.forEach(item => {
+            enwContent += "%0 Journal Article\n";
+            const authorArray = item.authors.split(',').map(a => a.trim().replace(/^&/, '').replace(/^and/, '').trim());
+            authorArray.forEach(a => { if(a) enwContent += `%A ${a}\n`; });
+            enwContent += `%T ${item.title}\n%J ${item.journal}\n%D ${item.year}\n`;
+            if(item.doi) enwContent += `%R ${item.doi}\n`;
+            enwContent += "\n";
+        });
+        const blob = new Blob([enwContent], { type: 'application/x-endnote-refer' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url;
+        a.download = `AGCITE_${activeProj.projectName.replace(/\s/g,'_')}.enw`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(I18N[currentLang].toastExport);
+    };
+}
 
 // ============================================
 // Auth SSO 伪装层 (Google Identity UI Mock)
@@ -797,13 +817,15 @@ function refreshAuthUI() {
     }
 }
 if(btnOpenAuth) btnOpenAuth.onclick = () => authModalOverlay.classList.add('show');
-document.getElementById('btnMockGoogleLogin').onclick = () => {
-    const randomSeed = "User_" + Math.floor(Math.random() * 99999);
-    localStorage.setItem(LOCAL_AUTH_KEY, randomSeed);
-    showToast(currentLang === 'zh' ? "Google SSO 令牌联调发放，已接入中心算力圈。" : "Google SSO Token Bound.");
-    authModalOverlay.classList.remove('show');
-    refreshAuthUI();
-};
+if(document.getElementById('btnMockGoogleLogin')) {
+    document.getElementById('btnMockGoogleLogin').onclick = () => {
+        const randomSeed = "User_" + Math.floor(Math.random() * 99999);
+        localStorage.setItem(LOCAL_AUTH_KEY, randomSeed);
+        showToast(currentLang === 'zh' ? "Google SSO 令牌联调发放，已接入中心算力圈。" : "Google SSO Token Bound.");
+        if(authModalOverlay) authModalOverlay.classList.remove('show');
+        refreshAuthUI();
+    };
+}
 window.logout = function() {
     if(confirm(currentLang==='zh'?"是否退栈销毁当前 Google SSO 凭据？":"Purge local Google Auth tokens?")) {
         localStorage.removeItem(LOCAL_AUTH_KEY);
