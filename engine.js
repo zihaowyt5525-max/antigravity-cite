@@ -289,25 +289,85 @@ function getReferenceEntryHTML(item, forceIndex) {
 }
 
 function updateAllCitations() {
-    let indexMapping = {}; // For GB and IEEE ordinal indices
+    // 同步实时物理层：如果从文本清除了，自动从 citedIds 摘取
+    const currentChips = Array.from(document.querySelectorAll('.cite-chip'));
+    activeProj.citedIds = new Set(currentChips.map(c => c.dataset.refid));
+
+    let indexMapping = {}; 
     let ordinal = 1;
     activeProj.citedIds.forEach(id => { indexMapping[id] = ordinal++; });
 
-    document.querySelectorAll('.cite-chip').forEach(chip => {
-        const id = chip.dataset.refid;
-        const item = activeProj.library.find(d => d.id === id);
-        if (item) chip.innerText = getInlineCitationText(item, indexMapping[id]);
-        
-        // 追加点击溯源事件！
-        chip.onclick = () => {
-            const el = document.querySelector(`.lib-id-${id}`);
-            if(el) {
-                document.querySelectorAll('.lib-item').forEach(e => e.classList.remove('active-highlight'));
-                el.classList.add('active-highlight');
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(()=> el.classList.remove('active-highlight'), 2000);
+    // 探测相邻聚类合并
+    let groups = [];
+    let currentGroup = [];
+    for (let i = 0; i < currentChips.length; i++) {
+        const chip = currentChips[i];
+        if (currentGroup.length === 0) {
+            currentGroup.push(chip);
+        } else {
+            const last = currentGroup[currentGroup.length - 1];
+            let canMerge = true;
+            let node = last.nextSibling;
+            
+            while(node && node !== chip) {
+                if (node.nodeType === 3) {
+                    const txt = node.textContent.trim();
+                    if (txt === '' || [',', ';', '[', ']', '(', ')', '，', '；'].includes(txt)) {
+                        node.parentNode.removeChild(node);
+                        node = last.nextSibling;
+                    } else { canMerge = false; break; }
+                } else { canMerge = false; break; }
             }
-        };
+            if (canMerge) { currentGroup.push(chip); } 
+            else { groups.push(currentGroup); currentGroup = [chip]; }
+        }
+    }
+    if (currentGroup.length > 0) groups.push(currentGroup);
+
+    groups.forEach(group => {
+        group.forEach((chip, idx) => {
+            const id = chip.dataset.refid;
+            const item = activeProj.library.find(d => d.id === id);
+            if(!item) return;
+
+            const authorArray = parseAuthors(item.authors);
+            let authStr = authorArray.length === 1 ? authorArray[0] : (authorArray.length === 2 ? `${authorArray[0]} ${currentFormat === 'apa' ? '&' : 'and'} ${authorArray[1]}` : `${authorArray[0]} et al.`);
+            
+            let text = "";
+            let idxNum = indexMapping[id];
+            
+            if (group.length === 1) {
+                if(currentFormat === 'apa') text = `(${authStr}, ${item.year})`;
+                else if(currentFormat === 'mla') text = `(${authStr})`;
+                else if(currentFormat === 'chicago') text = `(${authStr} ${item.year})`;
+                else text = `[${idxNum}]`; // gb, ieee
+            } else {
+                let inner = "";
+                if(currentFormat === 'apa') inner = `${authStr}, ${item.year}`;
+                else if(currentFormat === 'mla') inner = `${authStr}`;
+                else if(currentFormat === 'chicago') inner = `${authStr} ${item.year}`;
+                else inner = `${idxNum}`;
+
+                if (idx === 0) {
+                    text = ['gb', 'ieee'].includes(currentFormat) ? `[${inner}, ` : `(${inner}; `;
+                } else if (idx === group.length - 1) {
+                    text = ['gb', 'ieee'].includes(currentFormat) ? `${inner}]` : `${inner})`;
+                } else {
+                    text = ['gb', 'ieee'].includes(currentFormat) ? `${inner}, ` : `${inner}; `;
+                }
+            }
+
+            chip.innerText = text;
+            chip.onclick = () => {
+                const el = document.querySelector(`.lib-id-${id}`);
+                if(el) {
+                    document.querySelectorAll('.lib-item').forEach(e => e.classList.remove('active-highlight'));
+                    el.classList.add('active-highlight');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(()=> el.classList.remove('active-highlight'), 2000);
+                }
+            };
+        });
     });
     
     refList.innerHTML = '';
@@ -321,6 +381,8 @@ function updateAllCitations() {
         }
     });
 }
+
+textBody.addEventListener('input', () => { updateAllCitations(); });
 
 function showToast(msg) {
     dynamicToast.innerText = msg; dynamicToast.classList.add('show');
