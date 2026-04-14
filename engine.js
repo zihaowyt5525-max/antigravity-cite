@@ -741,6 +741,20 @@ function highlightPopResult() {
 popoverInput.addEventListener('input', (e) => renderPopoverResults(e.target.value));
 searchOverlay.addEventListener('mousedown', (e) => { if(e.target === searchOverlay) searchOverlay.classList.remove('show'); });
 
+// 导出至 Word (.doc) 逻辑
+document.getElementById('exportDocBtn').onclick = () => {
+    const rawBody = textBody.innerHTML.replace(/<span[^>]*class="cite-chip"[^>]*>(.*?)<\/span>/gi, '$1');
+    const rawRef = refList.innerHTML;
+    const docXML = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${activeProj.documentTitle}</title><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; } h1 { text-align: center; } p { line-height: 1.5; text-indent: 2em; } .ref-entry { margin-bottom: 12px; font-size: 11pt; padding-left: 2em; text-indent: -2em;}</style></head><body><h1>${activeProj.documentTitle}</h1><div>${rawBody}</div><div style="margin-top:40px; border-top:1px solid #000; padding-top:20px;"><h2 style="text-align:left; text-indent:0;">References</h2>${rawRef}</div></body></html>`;
+
+    const blob = new Blob(['\ufeff', docXML], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `${activeProj.documentTitle.replace(/\s/g,'_')}_AGCITE.doc`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast(currentLang === 'zh' ? "排版文稿大区已被剥离为原生 Word 文件！" : "Word Document Assembled & Exported.");
+};
+
 // 导出至 EndNote 逻辑
 document.getElementById('exportEndNoteBtn').onclick = () => {
     if (activeProj.library.length === 0) { showToast(I18N[currentLang].toastNoExport); return; }
@@ -762,6 +776,42 @@ document.getElementById('exportEndNoteBtn').onclick = () => {
     showToast(I18N[currentLang].toastExport);
 };
 
+// ============================================
+// Auth SSO 伪装层 (Google Identity UI Mock)
+// ============================================
+const LOCAL_AUTH_KEY = 'AGC_USER_AUTH';
+const btnOpenAuth = document.getElementById('btnOpenAuth');
+const userAvatarPane = document.getElementById('userAvatarPane');
+const authModalOverlay = document.getElementById('authModalOverlay');
+const userAvatarImg = document.getElementById('userAvatarImg');
+
+function refreshAuthUI() {
+    const user = localStorage.getItem(LOCAL_AUTH_KEY);
+    if(user) {
+        if(btnOpenAuth) btnOpenAuth.style.display = 'none';
+        if(userAvatarPane) userAvatarPane.style.display = 'block';
+        if(userAvatarImg) userAvatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}&style=circle&backgroundColor=b6e3f4`;
+    } else {
+        if(btnOpenAuth) btnOpenAuth.style.display = 'block';
+        if(userAvatarPane) userAvatarPane.style.display = 'none';
+    }
+}
+if(btnOpenAuth) btnOpenAuth.onclick = () => authModalOverlay.classList.add('show');
+document.getElementById('btnMockGoogleLogin').onclick = () => {
+    const randomSeed = "User_" + Math.floor(Math.random() * 99999);
+    localStorage.setItem(LOCAL_AUTH_KEY, randomSeed);
+    showToast(currentLang === 'zh' ? "Google SSO 令牌联调发放，已接入中心算力圈。" : "Google SSO Token Bound.");
+    authModalOverlay.classList.remove('show');
+    refreshAuthUI();
+};
+window.logout = function() {
+    if(confirm(currentLang==='zh'?"是否退栈销毁当前 Google SSO 凭据？":"Purge local Google Auth tokens?")) {
+        localStorage.removeItem(LOCAL_AUTH_KEY);
+        refreshAuthUI();
+    }
+};
+
 // Boot
+refreshAuthUI();
 window.updateLangRender();
 renderNav();
