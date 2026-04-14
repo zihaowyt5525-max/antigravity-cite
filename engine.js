@@ -60,21 +60,16 @@ const LOCAL_DB_KEY = 'AGC_LOCAL_DB';
 if (localStorage.getItem(LOCAL_DB_KEY)) {
     try {
         const raw = JSON.parse(localStorage.getItem(LOCAL_DB_KEY));
-        if (Array.isArray(raw) && raw.length > 0) {
-            window.AGC_PROJECTS = raw.map(p => { 
-                p.citedIds = new Set(p.citedIds || []); 
-                return p; 
-            });
-        }
-    } catch(e) { console.error("DB Load Error", e); }
+        window.AGC_PROJECTS = raw.map(p => { p.citedIds = new Set(p.citedIds || []); return p; });
+    } catch (e) { console.error("DB Load Error", e); }
 }
 
 let projDb = window.AGC_PROJECTS;
 let activeProj = window.AGC_PROJECTS.find(p => p.projectId === window.AGC_ACTIVE_PROJ_ID) || projDb[0];
-if(!window.AGC_ACTIVE_PROJ_ID) window.AGC_ACTIVE_PROJ_ID = activeProj.projectId;
+if (!window.AGC_ACTIVE_PROJ_ID) window.AGC_ACTIVE_PROJ_ID = activeProj.projectId;
 
 let saveDbTimer = null;
-window.debounceSaveDB = function() {
+window.debounceSaveDB = function () {
     clearTimeout(saveDbTimer);
     saveDbTimer = setTimeout(() => {
         const payload = JSON.stringify(projDb, (k, v) => k === 'citedIds' ? Array.from(v) : v);
@@ -91,28 +86,24 @@ document.getElementById('btnExportJson').onclick = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
     a.download = `AGCITE_MATRIX_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); 
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    a.click(); URL.revokeObjectURL(url);
     showToast(currentLang === 'zh' ? "全节点大群数据存档已脱出！" : "Matrix Nodes Extracted!");
 };
 
 document.getElementById('btnImportJson').onclick = () => document.getElementById('jsonRealImport').click();
 document.getElementById('jsonRealImport').onchange = (e) => {
     const file = e.target.files[0];
-    if(file) {
+    if (file) {
         const r = new FileReader();
         r.onload = ev => {
-            try { 
-                const data = JSON.parse(ev.target.result); 
-                if (Array.isArray(data)) {
-                    localStorage.setItem(LOCAL_DB_KEY, ev.target.result);
-                    location.reload(); 
-                } else { throw new Error("Format Invalid"); }
-            } catch(ex) { showToast(currentLang === 'zh' ? "灾备文档格式损坏！" : "Backup Corrupted!"); }
+            try {
+                JSON.parse(ev.target.result); // test
+                localStorage.setItem(LOCAL_DB_KEY, ev.target.result);
+                location.reload();
+            } catch (ex) { showToast(currentLang === 'zh' ? "灾备文档已损坏！" : "Backup Corrupted!"); }
         };
         r.readAsText(file);
     }
-    e.target.value = ''; // Reset
 };
 
 // DOM Elements
@@ -131,18 +122,18 @@ const popoverInput = document.getElementById('popoverInput');
 const popoverResults = document.getElementById('popoverResults');
 
 // =============== SPA 级别路由跳跃与挂载 ===============
-window.goHome = function() {
+window.goHome = function () {
     document.getElementById('workspaceView').style.display = 'none';
     document.getElementById('pricingView').style.display = 'none';
     document.getElementById('homeView').style.display = 'flex';
 }
-window.goPricing = function() {
+window.goPricing = function () {
     document.getElementById('workspaceView').style.display = 'none';
     document.getElementById('homeView').style.display = 'none';
     document.getElementById('pricingView').style.display = 'flex';
 }
 
-window.updateLangRender = function() {
+window.updateLangRender = function () {
     const dict = I18N[currentLang];
     document.querySelectorAll('[data-i18n]').forEach(el => { el.innerHTML = dict[el.getAttribute('data-i18n')]; });
     document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = dict[el.getAttribute('data-i18n-ph')]; });
@@ -157,11 +148,11 @@ document.getElementById('langSwitchBtn').onclick = () => {
     window.updateLangRender();
 };
 
-window.submitFeedbackForm = function() {
+window.submitFeedbackForm = function () {
     const name = document.getElementById('fbName').value.trim();
     const content = document.getElementById('fbContent').value.trim();
-    if(!content) { alert("意见箱不能投递空仓！"); return; }
-    
+    if (!content) { alert("意见箱不能投递空仓！"); return; }
+
     // 调用底层操作系统级邮箱拉起协议
     const mailtoLink = `mailto:2464658798@qq.com?subject=来自 Antigravity 学术平台 [${name || '匿名'}] 的意见&body=${encodeURIComponent(content)}`;
     window.location.href = mailtoLink;
@@ -182,17 +173,17 @@ function renderNav() {
 function switchProject(id) {
     activeProj = projDb.find(p => p.projectId === id);
     window.AGC_ACTIVE_PROJ_ID = id;
-    
+
     // 渲染编辑器
     sidebarProjName.innerText = activeProj.projectName;
     docTitle.innerText = activeProj.documentTitle;
     textBody.innerHTML = activeProj.documentBody;
-    
+
     // 更新视图
     document.getElementById('homeView').style.display = 'none';
     document.getElementById('pricingView').style.display = 'none';
     document.getElementById('workspaceView').style.display = 'flex';
-    
+
     renderNav();
     renderLibrary();
     updateAllCitations();
@@ -200,18 +191,18 @@ function switchProject(id) {
 }
 
 // 主面板呼出器
-window.enterWorkspace = function() {
+window.enterWorkspace = function () {
     switchProject(window.AGC_ACTIVE_PROJ_ID);
 }
-window.createNewProject = function() {
+window.createNewProject = function () {
     document.getElementById('projModalOverlay').classList.add('show');
 }
 document.getElementById('createNewProjBtn').onclick = window.createNewProject;
 
 document.getElementById('confirmProjBtn').onclick = () => {
     let name = document.getElementById('projNameInput').value.trim();
-    if(!name) name = "未命名研究阵列";
-    const newId = "proj_0x" + Math.floor(Math.random()*10000);
+    if (!name) name = "未命名研究阵列";
+    const newId = "proj_0x" + Math.floor(Math.random() * 10000);
     const newProj = {
         projectId: newId, projectName: name, documentTitle: "无标题文档",
         documentBody: "<p>这里空空如也，尝试敲打一些理论吧。</p>",
@@ -224,79 +215,73 @@ document.getElementById('confirmProjBtn').onclick = () => {
 }
 
 document.getElementById('openLearningBtn').onclick = () => document.getElementById('learningCenterOverlay').classList.add('show');
-document.getElementById('learningCenterOverlay').onmousedown = e => { if(e.target.id==='learningCenterOverlay') e.target.classList.remove('show'); };
+document.getElementById('learningCenterOverlay').onmousedown = e => { if (e.target.id === 'learningCenterOverlay') e.target.classList.remove('show'); };
 
 // ============================================
 // 物理介质深层摄取引擎 (Txt & True PDF Engine)
 // ============================================
 // 1. Text Import
-if(document.getElementById('uploadPhysicalBtn')) {
-    document.getElementById('uploadPhysicalBtn').onclick = () => document.getElementById('physicalFileUploader').click();
-}
-if(document.getElementById('physicalFileUploader')) {
-    document.getElementById('physicalFileUploader').onchange = (e) => {
-        const file = e.target.files[0];
-        if(file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                let res = ev.target.result;
-                res = res.split('\n').filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('');
-                activeProj.documentBody += res; // Add instead of replace
-                activeProj.documentTitle = activeProj.documentTitle === "无标题文档" ? file.name.replace(/\.[^/.]+$/, "") : activeProj.documentTitle;
-                textBody.innerHTML = activeProj.documentBody; docTitle.innerText = activeProj.documentTitle;
-                showToast(I18N[currentLang].toastDropRef);
-                updateAllCitations();
-            };
-            reader.readAsText(file);
-        }
-        e.target.value = ''; // Reset
-    };
-}
+document.getElementById('uploadPhysicalBtn').onclick = () => document.getElementById('physicalFileUploader').click();
+document.getElementById('physicalFileUploader').onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            let res = ev.target.result;
+            res = res.split('\n').filter(l => l.trim()).map(l => `<p>${l}</p>`).join('');
+            activeProj.documentBody = res;
+            activeProj.documentTitle = file.name.replace(/\.[^/.]+$/, "");
+            textBody.innerHTML = res; docTitle.innerText = activeProj.documentTitle;
+            showToast(I18N[currentLang].toastDropRef);
+            debounceSaveDB();
+        };
+        reader.readAsText(file);
+    }
+};
 
 // 2. Real PDF.js Core Import
 const uploadPdfRealBtn = document.getElementById('uploadPdfRealBtn');
 const pdfRealUploader = document.getElementById('pdfRealUploader');
-if(uploadPdfRealBtn) uploadPdfRealBtn.onclick = () => pdfRealUploader.click();
-if(pdfRealUploader) pdfRealUploader.onchange = (e) => {
+if (uploadPdfRealBtn) uploadPdfRealBtn.onclick = () => pdfRealUploader.click();
+if (pdfRealUploader) pdfRealUploader.onchange = (e) => {
     const file = e.target.files[0];
-    if(file && file.type === 'application/pdf') {
+    if (file && file.type === 'application/pdf') {
         const fileReader = new FileReader();
         showToast(currentLang === 'zh' ? "调用本机算力开始切片 PDF 文字层..." : "Initiating neural PDF extraction...");
-        fileReader.onload = async function() {
+        fileReader.onload = async function () {
             try {
-                if(typeof pdfjsLib === 'undefined') { showToast("PDF 核心引擎离线 (请连接有效网络)"); return; }
                 const typedarray = new Uint8Array(this.result);
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 let fullText = "";
+                // 为演示前端单体算力，锁定切最多15页防内存硬撑
                 for (let i = 1; i <= Math.min(pdf.numPages, 15); i++) {
                     const page = await pdf.getPage(i);
                     const textContent = await page.getTextContent();
                     const pageText = textContent.items.map(s => s.str).join(' ');
                     fullText += `<p>${pageText}</p>`;
                 }
-                activeProj.documentBody += fullText; // Add instead of replace
-                activeProj.documentTitle = activeProj.documentTitle === "无标题文档" ? file.name.replace(/\.[^/.]+$/, "") : activeProj.documentTitle;
-                textBody.innerHTML = activeProj.documentBody; docTitle.innerText = activeProj.documentTitle;
+                activeProj.documentBody = fullText;
+                activeProj.documentTitle = file.name.replace(/\.[^/.]+$/, "");
+                textBody.innerHTML = fullText; docTitle.innerText = activeProj.documentTitle;
                 showToast(currentLang === 'zh' ? "PDF 物理原件已无损挂载成功！" : "PDF Node Sequence Mounted.");
-                updateAllCitations();
-            } catch(e) {
+                debounceSaveDB();
+            } catch (e) {
                 showToast("Fatal Error! PDF 图层强拉失败。");
             }
         };
         fileReader.readAsArrayBuffer(file);
     }
-    e.target.value = ''; // Reset
 };
 
 // =============== 核心文献渲染与管理 ===============
 function renderLibrary(query = '') {
     libList.innerHTML = '';
-    const filtered = activeProj.library.filter(item => 
-        item.title.toLowerCase().includes(query.toLowerCase()) || 
+    const filtered = activeProj.library.filter(item =>
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
         item.authors.toLowerCase().includes(query.toLowerCase()) ||
         item.year.toString().includes(query)
     );
-    
+
     if (filtered.length === 0) {
         document.getElementById('emptyState').style.display = 'block';
     } else {
@@ -308,9 +293,9 @@ function renderLibrary(query = '') {
             <div class="lib-item-title">${item.title}</div>
             <div class="lib-item-meta">${item.authors} · ${item.year}</div>
             <div class="lib-item-actions">
-                <button class="act-btn" onclick="insertCitation('${item.id}')">${currentLang==='zh'?'引用':'Cite'}</button>
+                <button class="act-btn" onclick="insertCitation('${item.id}')">${currentLang === 'zh' ? '引用' : 'Cite'}</button>
                 ${item.pdfUrl ? `<button class="act-btn" style="color:var(--text-secondary)">PDF</button>` : ''}
-                <button class="act-btn del" onclick="deletePaper('${item.id}')">${currentLang==='zh'?'移除':'Drop'}</button>
+                <button class="act-btn del" onclick="deletePaper('${item.id}')">${currentLang === 'zh' ? '移除' : 'Drop'}</button>
             </div>
         `;
             libList.appendChild(div);
@@ -318,8 +303,8 @@ function renderLibrary(query = '') {
     }
 }
 
-window.deletePaper = function(id) {
-    if(confirm(currentLang==='zh'?"你确信要从当前阵列移除该文献吗？引用点可能失效！":"Are you certain you wish to purge this node? References may detach!")) {
+window.deletePaper = function (id) {
+    if (confirm(currentLang === 'zh' ? "你确信要从当前阵列移除该文献吗？引用点可能失效！" : "Are you certain you wish to purge this node? References may detach!")) {
         activeProj.library = activeProj.library.filter(p => p.id !== id);
         activeProj.citedIds.delete(id);
         renderLibrary();
@@ -351,7 +336,7 @@ function initSegmentControl() {
 
 // 作者分离与计数算法
 function parseAuthors(authorsString) {
-    return authorsString.split(',').map(s => s.trim().replace(/^&/,'').trim()).filter(s => s.length > 0).map(author => {
+    return authorsString.split(',').map(s => s.trim().replace(/^&/, '').trim()).filter(s => s.length > 0).map(author => {
         return author.split(' ')[0].replace(/[^a-zA-Z\u4e00-\u9fa5-]/g, '');
     }).filter(s => s);
 }
@@ -359,10 +344,10 @@ function parseAuthors(authorsString) {
 function getInlineCitationText(item, forceIndex) {
     const authorArray = parseAuthors(item.authors);
     let authStr = "Unknown";
-    if (authorArray.length === 1) { authStr = authorArray[0]; } 
-    else if (authorArray.length === 2) { authStr = currentFormat === 'apa' ? `${authorArray[0]} & ${authorArray[1]}` : `${authorArray[0]} and ${authorArray[1]}`; } 
+    if (authorArray.length === 1) { authStr = authorArray[0]; }
+    else if (authorArray.length === 2) { authStr = currentFormat === 'apa' ? `${authorArray[0]} & ${authorArray[1]}` : `${authorArray[0]} and ${authorArray[1]}`; }
     else if (authorArray.length >= 3) { authStr = `${authorArray[0]} et al.`; }
-    
+
     switch (currentFormat) {
         case 'apa': return `(${authStr}, ${item.year})`;
         case 'mla': return `(${authStr})`;
@@ -376,7 +361,7 @@ function getInlineCitationText(item, forceIndex) {
 function getReferenceEntryHTML(item, forceIndex) {
     const authorArray = parseAuthors(item.authors);
     const fullAuthStr = item.authors;
-    
+
     switch (currentFormat) {
         case 'apa': return `<b>${fullAuthStr}</b> (${item.year}). <i>${item.title}</i>. ${item.journal}. ${item.doi}`;
         case 'mla': return `<b>${fullAuthStr}</b>. "${item.title}." <i>${item.journal}</i>, ${item.year}. ${item.doi}`;
@@ -392,7 +377,7 @@ function updateAllCitations() {
     const currentChips = Array.from(document.querySelectorAll('.cite-chip'));
     activeProj.citedIds = new Set(currentChips.map(c => c.dataset.refid));
 
-    let indexMapping = {}; 
+    let indexMapping = {};
     let ordinal = 1;
     activeProj.citedIds.forEach(id => { indexMapping[id] = ordinal++; });
 
@@ -407,8 +392,8 @@ function updateAllCitations() {
             const last = currentGroup[currentGroup.length - 1];
             let canMerge = true;
             let node = last.nextSibling;
-            
-            while(node && node !== chip) {
+
+            while (node && node !== chip) {
                 if (node.nodeType === 3) {
                     const txt = node.textContent.trim();
                     if (txt === '' || [',', ';', '[', ']', '(', ')', '，', '；'].includes(txt)) {
@@ -417,7 +402,7 @@ function updateAllCitations() {
                     } else { canMerge = false; break; }
                 } else { canMerge = false; break; }
             }
-            if (canMerge) { currentGroup.push(chip); } 
+            if (canMerge) { currentGroup.push(chip); }
             else { groups.push(currentGroup); currentGroup = [chip]; }
         }
     }
@@ -427,24 +412,24 @@ function updateAllCitations() {
         group.forEach((chip, idx) => {
             const id = chip.dataset.refid;
             const item = activeProj.library.find(d => d.id === id);
-            if(!item) return;
+            if (!item) return;
 
             const authorArray = parseAuthors(item.authors);
             let authStr = authorArray.length === 1 ? authorArray[0] : (authorArray.length === 2 ? `${authorArray[0]} ${currentFormat === 'apa' ? '&' : 'and'} ${authorArray[1]}` : `${authorArray[0]} et al.`);
-            
+
             let text = "";
             let idxNum = indexMapping[id];
-            
+
             if (group.length === 1) {
-                if(currentFormat === 'apa') text = `(${authStr}, ${item.year})`;
-                else if(currentFormat === 'mla') text = `(${authStr})`;
-                else if(currentFormat === 'chicago') text = `(${authStr} ${item.year})`;
+                if (currentFormat === 'apa') text = `(${authStr}, ${item.year})`;
+                else if (currentFormat === 'mla') text = `(${authStr})`;
+                else if (currentFormat === 'chicago') text = `(${authStr} ${item.year})`;
                 else text = `[${idxNum}]`; // gb, ieee
             } else {
                 let inner = "";
-                if(currentFormat === 'apa') inner = `${authStr}, ${item.year}`;
-                else if(currentFormat === 'mla') inner = `${authStr}`;
-                else if(currentFormat === 'chicago') inner = `${authStr} ${item.year}`;
+                if (currentFormat === 'apa') inner = `${authStr}, ${item.year}`;
+                else if (currentFormat === 'mla') inner = `${authStr}`;
+                else if (currentFormat === 'chicago') inner = `${authStr} ${item.year}`;
                 else inner = `${idxNum}`;
 
                 if (idx === 0) {
@@ -459,16 +444,16 @@ function updateAllCitations() {
             chip.innerText = text;
             chip.onclick = () => {
                 const el = document.querySelector(`.lib-id-${id}`);
-                if(el) {
+                if (el) {
                     document.querySelectorAll('.lib-item').forEach(e => e.classList.remove('active-highlight'));
                     el.classList.add('active-highlight');
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    setTimeout(()=> el.classList.remove('active-highlight'), 2000);
+                    setTimeout(() => el.classList.remove('active-highlight'), 2000);
                 }
             };
         });
     });
-    
+
     refList.innerHTML = '';
     activeProj.citedIds.forEach(id => {
         const item = activeProj.library.find(d => d.id === id);
@@ -481,9 +466,9 @@ function updateAllCitations() {
     });
 }
 
-textBody.addEventListener('input', () => { 
-    updateAllCitations(); 
-    debounceSaveDB(); 
+textBody.addEventListener('input', () => {
+    updateAllCitations();
+    debounceSaveDB();
 });
 docTitle.addEventListener('input', () => {
     activeProj.documentTitle = docTitle.innerText;
@@ -506,7 +491,7 @@ async function runVisualTerminal(taskPromise) {
     visualTerminal.classList.add('show');
     vtLogs.innerHTML = '';
     addLog(`Initiating Remote Neural Link... <span class="vt-blink">_</span>`);
-    
+
     try {
         await taskPromise;
     } finally {
@@ -515,17 +500,17 @@ async function runVisualTerminal(taskPromise) {
 }
 
 // 供暴露调用的插入核心接口
-window.insertCitation = function(id) {
+window.insertCitation = function (id) {
     const item = activeProj.library.find(d => d.id === id);
     if (!item) return;
     activeProj.citedIds.add(id);
-    
+
     const span = document.createElement('span');
     span.className = 'cite-chip'; span.contentEditable = "false"; span.dataset.refid = id;
     span.innerText = getInlineCitationText(item, activeProj.citedIds.size);
-    
+
     const sel = window.getSelection();
-    if(sel.rangeCount > 0 && textBody.contains(sel.anchorNode)) {
+    if (sel.rangeCount > 0 && textBody.contains(sel.anchorNode)) {
         const range = sel.getRangeAt(0);
         range.insertNode(span);
         range.setStartAfter(span); range.collapse(true);
@@ -533,7 +518,7 @@ window.insertCitation = function(id) {
     } else {
         textBody.appendChild(span); textBody.appendChild(document.createTextNode(" "));
     }
-    
+
     updateAllCitations();
     debounceSaveDB();
     showToast(`${I18N[currentLang].toastCited}: ${item.authors.split(',')[0]}`);
@@ -549,25 +534,25 @@ const addPaperInput = document.getElementById('addPaperInput');
 const execAddPaperBtn = document.getElementById('execAddPaperBtn');
 
 document.getElementById('openAddModalBtn').onclick = () => { addPaperOverlay.classList.add('show'); setTimeout(() => addPaperInput.focus(), 50); };
-addPaperOverlay.addEventListener('mousedown', (e) => { if(e.target === addPaperOverlay) addPaperOverlay.classList.remove('show'); });
+addPaperOverlay.addEventListener('mousedown', (e) => { if (e.target === addPaperOverlay) addPaperOverlay.classList.remove('show'); });
 
 async function fetchAndInjectCrossref(titleQuery) {
     // 这里采用纯异步抛出，过程供 Terminal 获取展示
     addLog(`Crossref Module targeting: [${titleQuery}]`);
     await new Promise(r => setTimeout(r, 600)); // 故意加一点延迟增强机械感
-    
+
     const url = `https://api.crossref.org/works?query.title=${encodeURIComponent(titleQuery)}&select=title,author,issued,DOI,container-title&rows=1`;
     const r = await fetch(url);
     const data = await r.json();
-    
-    if(data.message.items && data.message.items.length > 0) {
+
+    if (data.message.items && data.message.items.length > 0) {
         const item = data.message.items[0];
         const authorsStr = item.author ? item.author.map(a => a.family).join(', ') : "Unknown Author";
         let yearVal = new Date().getFullYear();
-        if(item.issued && item.issued['date-parts'] && item.issued['date-parts'][0]) yearVal = item.issued['date-parts'][0][0];
-        
+        if (item.issued && item.issued['date-parts'] && item.issued['date-parts'][0]) yearVal = item.issued['date-parts'][0][0];
+
         const newRef = {
-            id: "ref_0x" + Math.floor(Math.random()*1000000),
+            id: "ref_0x" + Math.floor(Math.random() * 1000000),
             title: item.title ? item.title[0] : titleQuery,
             authors: authorsStr,
             year: yearVal,
@@ -588,16 +573,16 @@ async function fetchAndInjectCrossref(titleQuery) {
 
 execAddPaperBtn.onclick = async () => {
     const v = addPaperInput.value.trim();
-    if(!v) return;
+    if (!v) return;
     execAddPaperBtn.innerText = "捕获中..";
-    
+
     runVisualTerminal((async () => {
         addLog(`Initiating Standalone Crossref Protocol...`);
         await fetchAndInjectCrossref(v);
         addPaperOverlay.classList.remove('show');
         addPaperInput.value = '';
     })());
-    
+
     execAddPaperBtn.innerText = "强捕";
 };
 
@@ -607,15 +592,15 @@ execAddPaperBtn.onclick = async () => {
 // ============================================
 const aiLookupToolbar = document.getElementById('aiLookupToolbar');
 // Base64 Code of the Key. A slight barrier against naive DOM inspection. (Please replace in serious prod!)
-const GEMINI_KEY = atob("QUl6YVN5QWdtZERqUEdiR1RuSjkyUlBuYkVJNnp1UmZfZ09jeGJV"); 
+const GEMINI_KEY = atob("QUl6YVN5QWdtZERqUEdiR1RuSjkyUlBuYkVJNnp1UmZfZ09jeGJV");
 let currentSelectedText = "";
 
 function checkQuotaAndConsume() {
     const today = new Date().toISOString().split('T')[0];
     let usage = JSON.parse(localStorage.getItem('AG_USAGE') || '{"date":"","count":0}');
-    if(usage.date !== today) { usage.date = today; usage.count = 0; }
-    
-    if(usage.count >= 5) {
+    if (usage.date !== today) { usage.date = today; usage.count = 0; }
+
+    if (usage.count >= 5) {
         showToast(currentLang === 'zh' ? "[算力断崖] 基础防卫套餐今日 5 次配额已打空！将为您开启升阶阵列！" : "[Limit Reached] 5 Basic Free Traces Depleted. Upgrading is Required.");
         setTimeout(() => window.goPricing(), 1800);
         return false;
@@ -627,9 +612,9 @@ function checkQuotaAndConsume() {
 
 document.addEventListener('selectionchange', () => {
     const sel = window.getSelection();
-    if(sel.rangeCount > 0 && !sel.isCollapsed && textBody.contains(sel.anchorNode)) {
+    if (sel.rangeCount > 0 && !sel.isCollapsed && textBody.contains(sel.anchorNode)) {
         currentSelectedText = sel.toString().trim();
-        if(currentSelectedText.length > 10) {
+        if (currentSelectedText.length > 10) {
             const range = sel.getRangeAt(0); const rect = range.getBoundingClientRect();
             aiLookupToolbar.style.left = `${rect.left + rect.width / 2 - 75}px`;
             aiLookupToolbar.style.top = `${rect.top - 45 + window.scrollY}px`;
@@ -642,51 +627,51 @@ document.addEventListener('selectionchange', () => {
 
 // 防止 mousedown 事件遮断下拉选择器
 aiLookupToolbar.onmousedown = (e) => {
-    if(e.target.tagName !== 'SELECT' && e.target.tagName !== 'OPTION') e.preventDefault();
-}; 
+    if (e.target.tagName !== 'SELECT' && e.target.tagName !== 'OPTION') e.preventDefault();
+};
 document.getElementById('pullQuantity').onmousedown = (e) => e.stopPropagation();
 
 document.getElementById('aiLookupExecuteGroup').onclick = () => {
-    if(!currentSelectedText) return;
+    if (!currentSelectedText) return;
     const requestedCount = parseInt(document.getElementById('pullQuantity').value) || 1;
     aiLookupToolbar.classList.remove('active');
-    
+
     // 强制扣减每日配频，防黑客白嫖大招门槛
-    if(!checkQuotaAndConsume()) return;
-    
+    if (!checkQuotaAndConsume()) return;
+
     // 注入全景重型终端任务线
     runVisualTerminal((async () => {
         addLog(`Establishing connection to gemini-flash-latest via HTTP2...`);
         await new Promise(r => setTimeout(r, 400));
-        addLog(`Payload: "${currentSelectedText.substring(0,30)}..." [TARGET: ${requestedCount} Nodes]`);
-        
+        addLog(`Payload: "${currentSelectedText.substring(0, 30)}..." [TARGET: ${requestedCount} Nodes]`);
+
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`;
             const promptStr = `作为极高阶全维学术检索器，倒推可能出自的准确英文文献标题。\n请返回 ${requestedCount} 个你认为最匹配的不同学术文献标题，标题之间必须且只能用 "|||" 来分割。严禁返回其余废话与标点符号。\n\n追查源: "${currentSelectedText}"`;
-            const payload = { "contents": [{ "parts": [{"text": promptStr}] }] };
-            
+            const payload = { "contents": [{ "parts": [{ "text": promptStr }] }] };
+
             addLog(`Awaiting Deep Inference Frame...`);
-            const res = await fetch(url, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
+            const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             const data = await res.json();
-            
-            if(data.candidates && data.candidates[0].content) {
+
+            if (data.candidates && data.candidates[0].content) {
                 const rawResponse = data.candidates[0].content.parts[0].text.trim().replace(/['"]/g, '');
                 const titles = rawResponse.split('|||').map(t => t.trim()).filter(t => t);
-                
+
                 addLog(`[Gemini Response] Found ${titles.length} Possible Parent(s).`);
-                
+
                 // 接力给星环抓取器 (多线路串行发送，防止由于高并发被 Crossref 防火墙阻断)
-                for(let i=0; i<titles.length; i++) {
-                    addLog(`Executing Probe [${i+1}/${titles.length}]: <b style="color:#fbbc04">${titles[i].substring(0,25)}...</b>`);
+                for (let i = 0; i < titles.length; i++) {
+                    addLog(`Executing Probe [${i + 1}/${titles.length}]: <b style="color:#fbbc04">${titles[i].substring(0, 25)}...</b>`);
                     await fetchAndInjectCrossref(titles[i]);
                     await new Promise(r => setTimeout(r, 800)); // Crossref Request pacing
                 }
                 addLog(`<span style="color:#0f0">ALL TRACE MISSIONS COMPLETED.</span>`);
             } else if (data.error) {
-                addLog(`<span style="color:#ea4335">API REJECT: ${data.error.message.substring(0,30)}</span>`);
+                addLog(`<span style="color:#ea4335">API REJECT: ${data.error.message.substring(0, 30)}</span>`);
                 showToast(currentLang === 'zh' ? "神经末梢异常，主源拒绝接驳！" : "API Rejected Connection");
             }
-        } catch(e) {
+        } catch (e) {
             addLog(`<span style="color:#ea4335">FATAL NETWORK DROP: CORS or BLOCK.</span>`);
             showToast(currentLang === 'zh' ? "强袭请求被物理切断！请检查连线。" : "Network Fatal Drop Detected");
         } finally {
@@ -700,15 +685,15 @@ let selectedPopIndex = -1;
 let currentPopResults = [];
 
 function renderPopoverResults(query = '') {
-    currentPopResults = query ? activeProj.library.filter(item => 
-        item.title.toLowerCase().includes(query.toLowerCase()) || 
+    currentPopResults = query ? activeProj.library.filter(item =>
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
         item.authors.toLowerCase().includes(query.toLowerCase()) ||
         item.year.toString().includes(query)
-    ) : activeProj.library.slice(0, 5); 
-    
+    ) : activeProj.library.slice(0, 5);
+
     popoverResults.innerHTML = '';
     selectedPopIndex = -1;
-    
+
     currentPopResults.forEach((item, idx) => {
         const div = document.createElement('div');
         div.className = 'pop-result-item';
@@ -716,7 +701,7 @@ function renderPopoverResults(query = '') {
         div.innerHTML = `
             <div class="pr-title">${item.title}</div>
             <div class="pr-meta">${item.authors} - ${item.year}</div>
-            <div class="pr-preview">预看: ${getInlineCitationText(item, activeProj.citedIds.size+1)}</div>
+            <div class="pr-preview">预看: ${getInlineCitationText(item, activeProj.citedIds.size + 1)}</div>
         `;
         popoverResults.appendChild(div);
     });
@@ -726,7 +711,7 @@ function renderPopoverResults(query = '') {
 window.addEventListener('keydown', (e) => {
     // Cmd/Ctrl + Shift + F 唤引
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
-        if(document.getElementById('workspaceView').style.display === 'none') {
+        if (document.getElementById('workspaceView').style.display === 'none') {
             showToast("请先在主极进入你的某一个项目。"); return;
         }
         e.preventDefault();
@@ -735,11 +720,11 @@ window.addEventListener('keydown', (e) => {
         renderPopoverResults('');
         setTimeout(() => popoverInput.focus(), 50);
     }
-    
+
     if (searchOverlay.classList.contains('show')) {
         if (e.key === 'Escape') { searchOverlay.classList.remove('show'); textBody.focus(); }
-        else if (e.key === 'ArrowDown') { e.preventDefault(); selectedPopIndex = Math.min(selectedPopIndex + 1, currentPopResults.length - 1); highlightPopResult(); } 
-        else if (e.key === 'ArrowUp') { e.preventDefault(); selectedPopIndex = Math.max(selectedPopIndex - 1, 0); highlightPopResult(); } 
+        else if (e.key === 'ArrowDown') { e.preventDefault(); selectedPopIndex = Math.min(selectedPopIndex + 1, currentPopResults.length - 1); highlightPopResult(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); selectedPopIndex = Math.max(selectedPopIndex - 1, 0); highlightPopResult(); }
         else if (e.key === 'Enter' && selectedPopIndex >= 0) { e.preventDefault(); window.insertCitation(currentPopResults[selectedPopIndex].id); }
     }
 });
@@ -747,54 +732,49 @@ window.addEventListener('keydown', (e) => {
 function highlightPopResult() {
     const nodes = popoverResults.querySelectorAll('.pop-result-item');
     nodes.forEach(n => n.classList.remove('active-sel'));
-    if(selectedPopIndex >= 0 && nodes[selectedPopIndex]) {
+    if (selectedPopIndex >= 0 && nodes[selectedPopIndex]) {
         nodes[selectedPopIndex].classList.add('active-sel');
         nodes[selectedPopIndex].scrollIntoView({ block: "nearest" });
     }
 }
 
 popoverInput.addEventListener('input', (e) => renderPopoverResults(e.target.value));
-searchOverlay.addEventListener('mousedown', (e) => { if(e.target === searchOverlay) searchOverlay.classList.remove('show'); });
+searchOverlay.addEventListener('mousedown', (e) => { if (e.target === searchOverlay) searchOverlay.classList.remove('show'); });
 
 // 导出至 Word (.doc) 逻辑
-if(document.getElementById('exportDocBtn')) {
-    document.getElementById('exportDocBtn').onclick = () => {
-        const rawBody = textBody.innerHTML.replace(/<span[^>]*class="cite-chip"[^>]*>(.*?)<\/span>/gi, '$1');
-        const rawRef = refList.innerHTML;
-        const docXML = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${activeProj.documentTitle}</title><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; } h1 { text-align: center; } p { line-height: 1.5; text-indent: 2em; } .ref-entry { margin-bottom: 12px; font-size: 11pt; padding-left: 2em; text-indent: -2em;}</style></head><body><h1>${activeProj.documentTitle}</h1><div>${rawBody}</div><div style="margin-top:40px; border-top:1px solid #000; padding-top:20px;"><h2 style="text-align:left; text-indent:0;">References</h2>${rawRef}</div></body></html>`;
+document.getElementById('exportDocBtn').onclick = () => {
+    const rawBody = textBody.innerHTML.replace(/<span[^>]*class="cite-chip"[^>]*>(.*?)<\/span>/gi, '$1');
+    const rawRef = refList.innerHTML;
+    const docXML = `<!DOCTYPE html><html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${activeProj.documentTitle}</title><style>body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; } h1 { text-align: center; } p { line-height: 1.5; text-indent: 2em; } .ref-entry { margin-bottom: 12px; font-size: 11pt; padding-left: 2em; text-indent: -2em;}</style></head><body><h1>${activeProj.documentTitle}</h1><div>${rawBody}</div><div style="margin-top:40px; border-top:1px solid #000; padding-top:20px;"><h2 style="text-align:left; text-indent:0;">References</h2>${rawRef}</div></body></html>`;
 
-        const blob = new Blob(['\ufeff', docXML], { type: 'application/msword;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url;
-        a.download = `${activeProj.documentTitle.replace(/\s/g,'_')}_AGCITE.doc`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast(currentLang === 'zh' ? "排版文稿大区已被剥离为原生 Word 文件！" : "Word Document Assembled & Exported.");
-    };
-}
+    const blob = new Blob(['\ufeff', docXML], { type: 'application/msword;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `${activeProj.documentTitle.replace(/\s/g, '_')}_AGCITE.doc`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast(currentLang === 'zh' ? "排版文稿大区已被剥离为原生 Word 文件！" : "Word Document Assembled & Exported.");
+};
 
 // 导出至 EndNote 逻辑
-if(document.getElementById('exportEndNoteBtn')) {
-    document.getElementById('exportEndNoteBtn').onclick = () => {
-        if (activeProj.library.length === 0) { showToast(I18N[currentLang].toastNoExport); return; }
-        let enwContent = "";
-        activeProj.library.forEach(item => {
-            enwContent += "%0 Journal Article\n";
-            const authorArray = item.authors.split(',').map(a => a.trim().replace(/^&/, '').replace(/^and/, '').trim());
-            authorArray.forEach(a => { if(a) enwContent += `%A ${a}\n`; });
-            enwContent += `%T ${item.title}\n%J ${item.journal}\n%D ${item.year}\n`;
-            if(item.doi) enwContent += `%R ${item.doi}\n`;
-            enwContent += "\n";
-        });
-        const blob = new Blob([enwContent], { type: 'application/x-endnote-refer' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url;
-        a.download = `AGCITE_${activeProj.projectName.replace(/\s/g,'_')}.enw`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast(I18N[currentLang].toastExport);
-    };
-}
+document.getElementById('exportEndNoteBtn').onclick = () => {
+    if (activeProj.library.length === 0) { showToast(I18N[currentLang].toastNoExport); return; }
+    let enwContent = "";
+    activeProj.library.forEach(item => {
+        enwContent += "%0 Journal Article\n";
+        const authorArray = item.authors.split(',').map(a => a.trim().replace(/^&/, '').replace(/^and/, '').trim());
+        authorArray.forEach(a => { if (a) enwContent += `%A ${a}\n`; });
+        enwContent += `%T ${item.title}\n%J ${item.journal}\n%D ${item.year}\n`;
+        if (item.doi) enwContent += `%R ${item.doi}\n`;
+        enwContent += "\n";
+    });
+    const blob = new Blob([enwContent], { type: 'application/x-endnote-refer' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `AGCITE_${activeProj.projectName.replace(/\s/g, '_')}.enw`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(I18N[currentLang].toastExport);
+};
 
 // ============================================
 // Auth SSO 伪装层 (Google Identity UI Mock)
@@ -807,27 +787,25 @@ const userAvatarImg = document.getElementById('userAvatarImg');
 
 function refreshAuthUI() {
     const user = localStorage.getItem(LOCAL_AUTH_KEY);
-    if(user) {
-        if(btnOpenAuth) btnOpenAuth.style.display = 'none';
-        if(userAvatarPane) userAvatarPane.style.display = 'block';
-        if(userAvatarImg) userAvatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}&style=circle&backgroundColor=b6e3f4`;
+    if (user) {
+        if (btnOpenAuth) btnOpenAuth.style.display = 'none';
+        if (userAvatarPane) userAvatarPane.style.display = 'block';
+        if (userAvatarImg) userAvatarImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user}&style=circle&backgroundColor=b6e3f4`;
     } else {
-        if(btnOpenAuth) btnOpenAuth.style.display = 'block';
-        if(userAvatarPane) userAvatarPane.style.display = 'none';
+        if (btnOpenAuth) btnOpenAuth.style.display = 'block';
+        if (userAvatarPane) userAvatarPane.style.display = 'none';
     }
 }
-if(btnOpenAuth) btnOpenAuth.onclick = () => authModalOverlay.classList.add('show');
-if(document.getElementById('btnMockGoogleLogin')) {
-    document.getElementById('btnMockGoogleLogin').onclick = () => {
-        const randomSeed = "User_" + Math.floor(Math.random() * 99999);
-        localStorage.setItem(LOCAL_AUTH_KEY, randomSeed);
-        showToast(currentLang === 'zh' ? "Google SSO 令牌联调发放，已接入中心算力圈。" : "Google SSO Token Bound.");
-        if(authModalOverlay) authModalOverlay.classList.remove('show');
-        refreshAuthUI();
-    };
-}
-window.logout = function() {
-    if(confirm(currentLang==='zh'?"是否退栈销毁当前 Google SSO 凭据？":"Purge local Google Auth tokens?")) {
+if (btnOpenAuth) btnOpenAuth.onclick = () => authModalOverlay.classList.add('show');
+document.getElementById('btnMockGoogleLogin').onclick = () => {
+    const randomSeed = "User_" + Math.floor(Math.random() * 99999);
+    localStorage.setItem(LOCAL_AUTH_KEY, randomSeed);
+    showToast(currentLang === 'zh' ? "Google SSO 令牌联调发放，已接入中心算力圈。" : "Google SSO Token Bound.");
+    authModalOverlay.classList.remove('show');
+    refreshAuthUI();
+};
+window.logout = function () {
+    if (confirm(currentLang === 'zh' ? "是否退栈销毁当前 Google SSO 凭据？" : "Purge local Google Auth tokens?")) {
         localStorage.removeItem(LOCAL_AUTH_KEY);
         refreshAuthUI();
     }

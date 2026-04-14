@@ -27,16 +27,16 @@
             <div id="navProjList" style="display:flex; flex-direction:column; gap:16px;"></div>
         </div>
         <div class="nav-bottom">
-            <button class="nav-btn" onclick="goPricing()" title="解锁商业算力">
+            <button class="nav-btn" onclick="goPricing()" title="升维算力大厅 (Pricing)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             </button>
-            <button class="nav-btn create-proj-btn" id="createNewProjBtn">
+            <button class="nav-btn create-proj-btn" id="createNewProjBtn" title="开辟全新文献阵区">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
-            <button class="nav-btn secondary-btn" id="openLearningBtn">
+            <button class="nav-btn secondary-btn" id="openLearningBtn" title="呼出规范排版总线 (Rules)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
             </button>
-            <button class="nav-btn" id="langSwitchBtn" style="color:var(--text-accent);">
+            <button class="nav-btn" id="langSwitchBtn" style="color:var(--text-accent);" title="翻转双语视阈 (Lang Switch)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
             </button>
             <input type="file" id="jsonRealImport" style="display:none;" accept=".json">
@@ -50,7 +50,16 @@
     </nav>
 
     <!-- 主入口长页面 (SPA Landing Matrix) -->
-    <div id="homeView" class="app-view active">
+    <div id="homeView" class="app-view active" style="position:relative;">
+        <!-- 用户登录与认证区 (右上角) -->
+        <div class="user-auth-zone" id="userAuthZone" style="position:absolute; top:40px; right:50px; display:flex; align-items:center; z-index: 100;">
+            <button class="act-btn" id="btnOpenAuth" style="border-radius: 20px; font-size: 14px; font-weight:600; background: rgba(255,255,255,0.06); padding: 10px 24px; border: 1px solid rgba(255,255,255,0.2);">Login / Sign Up 🔒</button>
+            <div id="userAvatarPane" class="hover-zoom" style="display:none; text-align:center; cursor:pointer;" onclick="window.logout()" title="点击退栈注销 (Logout SSO)">
+                <img src="" id="userAvatarImg" style="width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 15px rgba(41,151,255,0.3); border: 2px solid var(--text-accent);">
+                <div style="font-size: 11px; margin-top:6px; color: var(--text-accent); font-weight:700;">PRO MATRIX</div>
+            </div>
+        </div>
+
         <div class="home-section" style="min-height: 85vh;">
             <div class="home-hero">
                 <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:24px; color:var(--text-accent)"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
@@ -144,23 +153,14 @@
             </div>
             
             <nav class="sidebar">
-                <!-- Logo / User Auth Zone -->
+                <!-- Logo -->
                 <div style="flex:1;">
                     <div class="logo">反重力学术矩阵</div>
-                    <div class="user-auth-zone" id="userAuthZone" style="margin: 0 20px 20px 20px;">
-                        <!-- 未登录态 -->
-                        <button class="act-btn" id="btnOpenAuth" style="width:100%; border-radius: 8px; font-size: 13px; background: rgba(255,255,255,0.05);">Login / Sign Up 🔒</button>
-                        <!-- 已登录态 -->
-                        <div id="userAvatarPane" class="hover-zoom" style="display:none; text-align:center; cursor:pointer;" onclick="window.logout()">
-                            <img src="" id="userAvatarImg" style="width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 15px rgba(41,151,255,0.3); border: 2px solid var(--text-accent);">
-                            <div style="font-size: 11px; margin-top:6px; color: var(--text-accent); font-weight:700;">PRO MATRIX</div>
-                        </div>
-                    </div>
                     
-                    <div style="padding: 0 10px;">
+                    <div style="padding: 10px;">
                         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         <input type="text" class="search-input" id="sidebarSearch" data-i18n-ph="searchLibPh" placeholder="搜索本地文献库 / Scholar...">
-                        <button class="add-paper-btn" id="openAddModalBtn">
+                        <button class="add-paper-btn" id="openAddModalBtn" title="捕获核心文库节点 (Fetch New Node)">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
                     </div>
